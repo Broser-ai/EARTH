@@ -1,13 +1,8 @@
 import clsx from 'clsx';
 import { Compass, Cpu, Radio } from 'lucide-react';
+import KernelAdapterHud from '../components/KernelAdapterHud.tsx';
 import { EarthLink } from '../routing/EarthLink.tsx';
 import { useRouter } from '../routing/Router.tsx';
-import {
-  inklingLesson,
-  presenceLabel,
-  presenceTone,
-  probeAdapter,
-} from '../routing/kernelProbe.ts';
 import { useEarthRuntime } from '../sovereign/runtime/EarthRuntimeContext.tsx';
 
 export default function PrimePolicy() {
@@ -15,11 +10,12 @@ export default function PrimePolicy() {
   const { runtime, generation } = useEarthRuntime();
   void generation;
 
-  const inkling = probeAdapter('inkling', runtime);
-  const tinker = probeAdapter('tinker', runtime);
-  const lesson = inklingLesson();
+  const adapters = runtime.adapterStatus();
+  const lesson = runtime.inkling.currentLesson();
   const trajectories = runtime.prime.trajectories();
   const trained = runtime.inkling.trained();
+  const tinkerJob = runtime.tinker.lastSubmitted();
+  const tinkerMode = runtime.tinker.mode();
 
   return (
     <div className="space-y-4 text-text-primary">
@@ -28,39 +24,80 @@ export default function PrimePolicy() {
           <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-accent">MISSION / PRIME</p>
           <h1 className="mt-1 font-mono text-lg font-bold tracking-widest">PRIME POLICY</h1>
           <p className="mt-1 max-w-xl text-sm text-text-secondary">
-            Inkling is the policy brain. Tinker fine-tunes from Prime trajectories. Until weights
-            exist, the kernel refuses to invent a policy and uses the deterministic fallback.
+            Inkling is the policy brain. Tinker fine-tunes from Prime trajectories. Address bar:{' '}
+            <span className="font-mono text-accent">/mission/prime</span>. Until weights exist, the
+            kernel refuses to invent a policy.
           </p>
         </div>
         <span className="font-mono text-[11px] text-text-muted">{canonical}</span>
       </div>
 
+      <KernelAdapterHud adapters={adapters} />
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatusTile label="RL trained" value={trained ? 'YES' : 'NO'} tone={trained ? 'success' : 'amber'} />
         <StatusTile label="Trajectories" value={String(trajectories.length)} tone="accent" />
+        <StatusTile label="Tinker client" value={tinkerMode.toUpperCase()} tone={tinkerMode === 'stub' ? 'muted' : 'success'} />
         <StatusTile
-          label="Inkling"
-          value={presenceLabel(inkling.presence)}
-          tone={presenceTone(inkling.presence)}
-        />
-        <StatusTile
-          label="Tinker"
-          value={presenceLabel(tinker.presence)}
-          tone={presenceTone(tinker.presence)}
+          label="Last job"
+          value={tinkerJob ? tinkerJob.status.toUpperCase() : 'NONE'}
+          tone={tinkerJob ? 'accent' : 'muted'}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <AdapterCard
-          icon={Compass}
-          adapter={inkling}
-          extra={lesson ? `Lesson ${lesson.id} — ${lesson.title}` : 'No lesson module on this branch yet'}
-        />
-        <AdapterCard
-          icon={Cpu}
-          adapter={tinker}
-          extra="Prime trajectories are the dataset. No worker attached from this surface."
-        />
+        <div className="rounded-lg border border-white/5 bg-white/[0.03] p-4 backdrop-blur">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent/10">
+              <Compass className="h-4 w-4 text-accent" />
+            </div>
+            <div>
+              <p className="font-mono text-xs font-semibold tracking-wide">INKLING</p>
+              <p className="font-mono text-[10px] text-text-muted">Thinking Machines Lab</p>
+            </div>
+            <span className={clsx('ml-auto font-mono text-[9px] tracking-wider', trained ? 'text-success' : 'text-amber')}>
+              {trained ? 'WEIGHTS' : 'UNTRAINED'}
+            </span>
+          </div>
+          {lesson ? (
+            <div className="mt-3 space-y-1">
+              <p className="font-mono text-[11px] text-accent">{lesson.id}</p>
+              <p className="text-sm text-text-secondary">{lesson.title}</p>
+              <p className="font-mono text-[10px] text-text-muted">
+                concept {lesson.concept.kind} · sim {lesson.sim.source} · min {lesson.sim.minEpisodes}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-text-secondary">No lesson attached.</p>
+          )}
+          <p className="mt-3 font-mono text-[10px] text-text-muted">
+            liveInference {String(runtime.inkling.policy.liveInference)} · hooked{' '}
+            {runtime.inkling.hookedEpisodes().length}
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-white/5 bg-white/[0.03] p-4 backdrop-blur">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent/10">
+              <Cpu className="h-4 w-4 text-accent" />
+            </div>
+            <div>
+              <p className="font-mono text-xs font-semibold tracking-wide">TINKER</p>
+              <p className="font-mono text-[10px] text-text-muted">Thinking Machines Lab</p>
+            </div>
+            <span className="ml-auto font-mono text-[9px] tracking-wider text-text-muted">
+              {tinkerMode.toUpperCase()}
+            </span>
+          </div>
+          <p className="mt-3 text-sm text-text-secondary">
+            Fine-tune backend. Prime trajectories are the dataset. This surface does not submit jobs.
+          </p>
+          <p className="mt-2 font-mono text-[11px] text-text-muted">
+            {tinkerJob
+              ? `${tinkerJob.id} · ${tinkerJob.status} · samples ${tinkerJob.samples}`
+              : 'No job submitted this session'}
+          </p>
+        </div>
       </div>
 
       <EarthLink
@@ -70,44 +107,6 @@ export default function PrimePolicy() {
         <Radio className="h-3.5 w-3.5" />
         OPEN UPLINK MANIFEST
       </EarthLink>
-    </div>
-  );
-}
-
-function AdapterCard({
-  icon: Icon,
-  adapter,
-  extra,
-}: {
-  icon: typeof Compass;
-  adapter: ReturnType<typeof probeAdapter>;
-  extra: string;
-}) {
-  return (
-    <div className="rounded-lg border border-white/5 bg-white/[0.03] p-4 backdrop-blur">
-      <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent/10">
-          <Icon className="h-4 w-4 text-accent" />
-        </div>
-        <div>
-          <p className="font-mono text-xs font-semibold tracking-wide">{adapter.product}</p>
-          <p className="font-mono text-[10px] text-text-muted">{adapter.vendor}</p>
-        </div>
-        <span
-          className={clsx(
-            'ml-auto font-mono text-[9px] tracking-wider',
-            adapter.modulePresent ? 'text-accent' : 'text-amber',
-          )}
-        >
-          {adapter.modulePresent ? 'MODULE' : 'AWAITING'}
-        </span>
-      </div>
-      <p className="mt-3 text-sm text-text-secondary">{adapter.role}</p>
-      <p className="mt-2 font-mono text-[11px] leading-relaxed text-text-muted">{adapter.note}</p>
-      <p className="mt-2 text-[11px] text-text-secondary">{extra}</p>
-      <p className="mt-3 font-mono text-[10px] text-text-muted">
-        KERNEL {adapter.runtimeLinked ? `LINKED · ${adapter.linkedKey}` : 'NOT ATTACHED'}
-      </p>
     </div>
   );
 }
