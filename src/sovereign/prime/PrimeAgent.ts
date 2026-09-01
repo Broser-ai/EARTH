@@ -35,7 +35,11 @@ export class PrimeAgent {
     };
   }
 
-  recordOutcome(decision: PolicyDecision, outcome: SwarmOutcome): Trajectory {
+  recordOutcome(
+    decision: PolicyDecision,
+    outcome: SwarmOutcome,
+    hook?: { lessonId?: string },
+  ): Trajectory {
     this.seq += 1;
     const trajectory: Trajectory = {
       id: `traj-${this.seq.toString().padStart(4, '0')}`,
@@ -44,6 +48,7 @@ export class PrimeAgent {
       outcome,
       reward: rewardFromOutcome(outcome),
       ts: new Date().toISOString(),
+      lessonId: hook?.lessonId,
     };
     this.log.push(trajectory);
     return trajectory;

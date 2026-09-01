@@ -54,12 +54,16 @@ function stageFor(type: EarthEventType): StageId {
     case 'hitl.rejected':
       return 'PLAN_REVIEW';
     case 'agent.dispatched':
+    case 'vision.detected':
+    case 'intake.observed':
       return 'IMPLEMENT';
     case 'ledger.appended':
     case 'agent.completed':
       return 'CODE_REVIEW';
     case 'agent.blocked':
     case 'agent.refused':
+    case 'tinker.job.submitted':
+    case 'tinker.job.updated':
       return 'TRIAL_EVALUATE';
     case 'swarm.mission.completed':
     case 'prime.trajectory.recorded':
@@ -67,6 +71,8 @@ function stageFor(type: EarthEventType): StageId {
     case 'runtime.halted':
     case 'eliability.posted':
     case 'intake.recorded':
+    case 'inkling.lesson.attached':
+    case 'adapter.status':
       return 'VERDICT_DEPLOY';
     default:
       return assertNever(type, 'unmapped swarm event');

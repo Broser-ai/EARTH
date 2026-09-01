@@ -53,6 +53,11 @@ export function buildEarthCapabilityTree(): CapabilityTree {
         children: [leaf('ops.intake', 'Intake recording'), leaf('ops.route', 'Route / logistics')],
       },
       {
+        id: 'vision',
+        label: 'Vision',
+        children: [leaf('vision.infer', 'Material / intake inference')],
+      },
+      {
         id: 'carbon',
         label: 'Carbon',
         children: [leaf('carbon.post', 'E-liability posting')],
@@ -78,4 +83,7 @@ export const SPECIALIST_CAPABILITIES = [
   'compliance.gate',
   'identity.anchor',
   'ledger.append',
+  'vision.infer',
 ] as const;
+
+export type SpecialistCapability = (typeof SPECIALIST_CAPABILITIES)[number];

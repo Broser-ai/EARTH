@@ -10,6 +10,7 @@ import {
   GitBranch,
 } from 'lucide-react';
 import clsx from 'clsx';
+import KernelAdapterHud from '../components/KernelAdapterHud.tsx';
 import { useEarthRuntime } from '../sovereign/runtime/EarthRuntimeContext.tsx';
 import { SPECIALIST_CAPABILITIES } from '../sovereign/swarm/capabilities.ts';
 
@@ -33,8 +34,8 @@ export default function CommandCenter() {
       name: 'Prime Agent',
       icon: Compass,
       stats: [
-        { label: 'Policy', value: 'deterministic' },
-        { label: 'RL trained', value: 'no' },
+        { label: 'Policy', value: runtime.prime.trajectories()[0]?.decision.policyKind ?? 'deterministic' },
+        { label: 'RL trained', value: runtime.inkling.trained() ? 'yes' : 'no' },
         { label: 'Trajectories', value: String(trajectories.length) },
       ],
     },
@@ -114,8 +115,10 @@ export default function CommandCenter() {
         </button>
       </div>
 
+      <KernelAdapterHud adapters={runtime.adapterStatus()} />
+
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile label="Kernel modules" value="6" />
+        <StatTile label="Kernel modules" value="9" />
         <StatTile
           label="Runtime"
           value={online ? 'ONLINE' : 'COLD'}

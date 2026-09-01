@@ -16,7 +16,13 @@ export type EarthEventType =
   | 'prime.trajectory.recorded'
   | 'ledger.appended'
   | 'eliability.posted'
-  | 'intake.recorded';
+  | 'intake.recorded'
+  | 'vision.detected'
+  | 'intake.observed'
+  | 'tinker.job.submitted'
+  | 'tinker.job.updated'
+  | 'inkling.lesson.attached'
+  | 'adapter.status';
 
 export interface EarthEvent {
   id: string;
@@ -124,6 +130,7 @@ export interface Trajectory {
   outcome: SwarmOutcome;
   reward: number;
   ts: string;
+  lessonId?: string;
 }
 
 export interface CapabilityNodeSpec {

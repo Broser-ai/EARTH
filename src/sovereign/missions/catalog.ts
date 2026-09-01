@@ -47,6 +47,17 @@ export const MISSION_CATALOG: MissionSpec[] = [
     ],
   },
   {
+    id: 'mission-vision-intake',
+    title: 'Vision intake observe',
+    tasks: [
+      task('vision-pallet', 'vision.infer', 'Identify inbound material from intake photo', {
+        ...CLEAN,
+        imageUrl: 'https://earth.local/intake/stub.jpg',
+        materialHint: 'rPET',
+      }),
+    ],
+  },
+  {
     id: 'mission-ethics-block',
     title: 'Ethics floor — supplier labor',
     tasks: [
