@@ -1,12 +1,7 @@
 import { useState } from 'react';
 import clsx from 'clsx';
 import { Download, Upload, CheckCircle2, Clock, AlertTriangle, Leaf, Target, Shield, BarChart3 } from 'lucide-react';
-
-const SCOPES = [
-  { name: 'Scope 1', label: 'Direct emissions', value: 2847, pct: 19.2, color: '#EF4444' },
-  { name: 'Scope 2', label: 'Energy indirect', value: 4123, pct: 27.8, color: '#F59E0B' },
-  { name: 'Scope 3', label: 'Value chain', value: 7877, pct: 53.0, color: '#60A5FA' },
-];
+import { useEarthRuntime } from '../sovereign/runtime/EarthRuntimeContext.tsx';
 
 const EMISSIONS = [
   { category: 'Natural gas combustion', scope: 'Scope 1', amount: 1247, method: 'Measured', verified: true },
@@ -42,13 +37,23 @@ const methodBadge: Record<string, string> = {
 
 export default function CarbonAccounting() {
   const [period, setPeriod] = useState('H1 2026');
+  const { runtime } = useEarthRuntime();
+  const spine = runtime.eliability.asCarbonView();
+  const SCOPES = [
+    { name: 'Scope 1', label: 'Direct emissions', value: spine.scope1, color: '#EF4444' },
+    { name: 'Scope 2', label: 'Energy indirect', value: spine.scope2, color: '#F59E0B' },
+    { name: 'Scope 3', label: 'Value chain', value: spine.scope3, color: '#60A5FA' },
+  ].map((row) => ({
+    ...row,
+    pct: spine.totalTCO2e === 0 ? 0 : Math.round((row.value / spine.totalTCO2e) * 1000) / 10,
+  }));
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-base font-medium text-[#E2E8F0]">Carbon Accounting</h1>
-          <p className="text-[11px] text-[#94A3B8]">GHG Protocol corporate standard · ISO 14064</p>
+          <p className="text-[11px] text-[#94A3B8]">E-liability spine · GHG Protocol · ISO 14064</p>
         </div>
         <div className="flex items-center gap-2">
           <select value={period} onChange={e => setPeriod(e.target.value)} className="rounded-md border border-white/[0.06] bg-[#0a1628] px-2.5 py-1.5 text-[11px] text-[#E2E8F0] outline-none">
@@ -61,7 +66,7 @@ export default function CarbonAccounting() {
 
       <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] p-4 text-center">
         <p className="text-[9px] font-mono uppercase tracking-wider text-[#64748B]">Total Emissions</p>
-        <p className="mt-1 font-mono text-3xl font-bold text-[#E2E8F0]">14,847 <span className="text-sm text-[#94A3B8]">tCO₂e</span></p>
+        <p className="mt-1 font-mono text-3xl font-bold text-[#E2E8F0]">{spine.totalTCO2e.toLocaleString()} <span className="text-sm text-[#94A3B8]">tCO₂e</span></p>
         <p className="mt-0.5 text-[10px] font-mono text-[#34D399]">▼ 8.3% year-over-year</p>
       </div>
 

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import clsx from 'clsx';
+import { useEarthRuntime } from '../sovereign/runtime/EarthRuntimeContext.tsx';
 import {
   Download,
   Search,
@@ -177,6 +178,9 @@ function ModuleTag({ module }: { module: ModuleType }) {
 // ---------------------------------------------------------------------------
 
 export default function AuditTrail() {
+  const { runtime, generation } = useEarthRuntime();
+  void generation;
+  const spine = runtime.eliability.asAuditView();
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState<(ActionType | 'All actions')>('All actions');
   const [moduleFilter, setModuleFilter] = useState<(ModuleType | 'All modules')>('All modules');
@@ -206,7 +210,7 @@ export default function AuditTrail() {
         <div>
           <h1 className="font-mono text-lg font-bold tracking-widest text-[#F1F5F9]">AUDIT TRAIL</h1>
           <p className="mt-1 text-xs text-[#94A3B8]">
-            Complete activity log for compliance and transparency — every platform action is recorded
+            E-liability spine {spine.totalTCO2e.toLocaleString()} tCO₂e · hash-chain {runtime.ledger.length} entries
           </p>
         </div>
         <button

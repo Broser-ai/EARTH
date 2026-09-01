@@ -5,7 +5,7 @@ import type { EarthRuntime } from './EarthRuntime.ts';
 interface RuntimeContextValue {
   runtime: EarthRuntime;
   generation: number;
-  reset: () => void;
+  reset: () => EarthRuntime;
 }
 
 const RuntimeContext = createContext<RuntimeContextValue | null>(null);
@@ -25,8 +25,10 @@ export function EarthRuntimeProvider({ children }: { children: ReactNode }) {
       runtime,
       generation,
       reset: () => {
-        setRuntime(createEarthRuntime());
+        const next = createEarthRuntime();
+        setRuntime(next);
         setGeneration(0);
+        return next;
       },
     }),
     [runtime, generation],

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import clsx from 'clsx';
+import { useEarthRuntime } from '../sovereign/runtime/EarthRuntimeContext.tsx';
 import {
   Flame,
   Zap,
@@ -48,8 +49,6 @@ const SCOPE_TOTALS = {
   scope2: { value: 4210, pct: 28.3, color: '#F59E0B', label: 'Energy indirect' },
   scope3: { value: 8497, pct: 57.2, color: '#60A5FA', label: 'Value chain' },
 };
-
-const GRAND_TOTAL = SCOPE_TOTALS.scope1.value + SCOPE_TOTALS.scope2.value + SCOPE_TOTALS.scope3.value;
 
 const SCOPE1_ROWS: Scope1Row[] = [
   {
@@ -200,6 +199,8 @@ function QualityBadge({ quality }: { quality: DataQuality }) {
 
 export default function EmissionsScope() {
   const [activeScope, setActiveScope] = useState<ScopeId>('all');
+  const { runtime } = useEarthRuntime();
+  const spineTotal = runtime.eliability.asCarbonView().totalTCO2e;
 
   const tabs: { id: ScopeId; label: string }[] = [
     { id: 'all', label: 'All scopes' },
@@ -236,7 +237,7 @@ export default function EmissionsScope() {
         <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-4 py-2 backdrop-blur">
           <Gauge className="h-3.5 w-3.5 text-[#60A5FA]" />
           <span className="font-mono text-[11px] text-[#94A3B8]">Total inventory</span>
-          <span className="font-mono text-sm font-bold text-[#F1F5F9]">{fmt(GRAND_TOTAL)} tCO2e</span>
+          <span className="font-mono text-sm font-bold text-[#F1F5F9]">{fmt(spineTotal)} tCO2e</span>
         </div>
       </div>
 
@@ -306,7 +307,7 @@ export default function EmissionsScope() {
         </div>
         <div className="mt-2 flex flex-wrap justify-between font-mono text-[10px] text-[#475569]">
           <span>0%</span>
-          <span>Total inventory: {fmt(GRAND_TOTAL)} tCO2e across {SCOPE3_ROWS.length + 6 + 2} emission sources</span>
+          <span>Total inventory: {fmt(spineTotal)} tCO2e across {SCOPE3_ROWS.length + 6 + 2} emission sources</span>
           <span>100%</span>
         </div>
       </Card>

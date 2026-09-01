@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import clsx from 'clsx';
 import { ChevronDown, ChevronRight, CheckCircle2, Clock, AlertTriangle, FileText, Shield } from 'lucide-react';
+import { useEarthRuntime } from '../sovereign/runtime/EarthRuntimeContext.tsx';
 
 const ESRS = [
   { code: 'E1', topic: 'Climate change', done: 12, total: 12, color: '#34D399' },
@@ -51,6 +52,8 @@ const statusStyle: Record<string, string> = {
 
 export default function CSRDDisclosure() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set(['E1']));
+  const { runtime } = useEarthRuntime();
+  const csrd = runtime.eliability.asCsrdView();
 
   const toggle = (code: string) => {
     const next = new Set(expanded);
@@ -63,7 +66,9 @@ export default function CSRDDisclosure() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-base font-medium text-[#E2E8F0]">CSRD Disclosure</h1>
-          <p className="text-[11px] text-[#94A3B8]">European Sustainability Reporting Standards (ESRS)</p>
+          <p className="text-[11px] text-[#94A3B8]">
+            ESRS · {csrd.datapoint} total {csrd.totalTCO2e.toLocaleString()} tCO₂e (same e-liability spine)
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">

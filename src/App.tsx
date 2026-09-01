@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, type JSX } from 'react';
 import CommandBar from './components/CommandBar';
-import type { EarthSection } from './components/CommandBar';
-import Sidebar from './components/Sidebar';
+import { SECTION_PAGES, type EarthSection } from './components/CommandBar';
+import { EarthRuntimeProvider, useEarthRuntime } from './sovereign/runtime/EarthRuntimeContext.tsx';
 
 import Overview from './pages/Overview';
 import PickupOrders from './pages/PickupOrders';
@@ -28,6 +28,11 @@ import LocationsSettings from './pages/LocationsSettings';
 import UsersRoles from './pages/UsersRoles';
 import IntegrationsSettings from './pages/IntegrationsSettings';
 import BillingSettings from './pages/BillingSettings';
+import CommandCenter from './pages/CommandCenter';
+import DevSwarm from './pages/DevSwarm';
+import AegisProtocol from './pages/AegisProtocol';
+import WarGame from './pages/WarGame';
+import UnknownPage from './pages/UnknownPage';
 
 const SECTION_DEFAULT_PAGE: Record<EarthSection, string> = {
   overview: 'dashboard',
@@ -36,38 +41,17 @@ const SECTION_DEFAULT_PAGE: Record<EarthSection, string> = {
   'carbon-esg': 'carbon-accounting',
   compliance: 'compliance-dashboard',
   reports: 'reports',
+  mission: 'command-center',
 };
 
-const PAGE_TO_SECTION: Record<string, EarthSection> = {
-  'dashboard': 'overview',
-  'pickup-orders': 'operations',
-  'container-fleet': 'operations',
-  'recycler-network': 'operations',
-  'route-planner': 'operations',
-  'weight-scanning': 'operations',
-  'reverse-logistics': 'circular',
-  'take-back-programs': 'circular',
-  'b2b-marketplace': 'circular',
-  'material-exchange': 'circular',
-  'product-passports': 'circular',
-  'carbon-accounting': 'carbon-esg',
-  'emissions-scope': 'carbon-esg',
-  'reduction-targets': 'carbon-esg',
-  'offset-credits': 'carbon-esg',
-  'compliance-dashboard': 'compliance',
-  'csrd-disclosure': 'compliance',
-  'gri-reporting': 'compliance',
-  'eudr-tracking': 'compliance',
-  'audit-trail': 'compliance',
-  'reports': 'reports',
-  'locations': 'reports',
-  'users-roles': 'reports',
-  'integrations': 'reports',
-  'billing': 'reports',
-};
+const PAGE_TO_SECTION: Record<string, EarthSection> = Object.fromEntries(
+  (Object.entries(SECTION_PAGES) as [EarthSection, { id: string }[]][]).flatMap(([section, pages]) =>
+    pages.map((page) => [page.id, section]),
+  ),
+) as Record<string, EarthSection>;
 
-const PAGE_COMPONENTS: Record<string, () => React.JSX.Element> = {
-  'dashboard': Overview,
+const PAGE_COMPONENTS: Record<string, () => JSX.Element> = {
+  dashboard: Overview,
   'pickup-orders': PickupOrders,
   'container-fleet': ContainerFleet,
   'recycler-network': RecyclerNetwork,
@@ -87,14 +71,19 @@ const PAGE_COMPONENTS: Record<string, () => React.JSX.Element> = {
   'gri-reporting': GRIReporting,
   'eudr-tracking': EUDRTracking,
   'audit-trail': AuditTrail,
-  'reports': Reports,
-  'locations': LocationsSettings,
+  reports: Reports,
+  locations: LocationsSettings,
   'users-roles': UsersRoles,
-  'integrations': IntegrationsSettings,
-  'billing': BillingSettings,
+  integrations: IntegrationsSettings,
+  billing: BillingSettings,
+  'command-center': CommandCenter,
+  'dev-swarm': DevSwarm,
+  aegis: AegisProtocol,
+  'war-game': WarGame,
 };
 
-export default function App() {
+function Shell() {
+  const { runtime, generation } = useEarthRuntime();
   const [activeSection, setActiveSection] = useState<EarthSection>('overview');
   const [activePage, setActivePage] = useState('dashboard');
 
@@ -109,17 +98,35 @@ export default function App() {
     if (section) setActiveSection(section);
   };
 
-  const PageComponent = PAGE_COMPONENTS[activePage] || Overview;
+  const PageComponent = PAGE_COMPONENTS[activePage];
+  const hitlPending = runtime.bus
+    .history()
+    .filter((event) => event.type === 'hitl.requested').length
+    - runtime.bus.history().filter((event) => event.type === 'hitl.approved').length;
+
+  void generation;
 
   return (
     <div className="flex h-screen flex-col bg-space">
-      <CommandBar activeSection={activeSection} onNavigate={handleSectionChange} />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar activePage={activePage} onNavigate={handlePageChange} />
-        <main className="flex-1 overflow-y-auto p-6">
-          <PageComponent />
-        </main>
-      </div>
+      <CommandBar
+        activeSection={activeSection}
+        activePage={activePage}
+        onSection={handleSectionChange}
+        onPage={handlePageChange}
+        hitlPending={Math.max(0, hitlPending)}
+        runtimeOnline={runtime.isBooted}
+      />
+      <main className="flex-1 overflow-y-auto p-6">
+        {PageComponent ? <PageComponent /> : <UnknownPage pageId={activePage} />}
+      </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <EarthRuntimeProvider>
+      <Shell />
+    </EarthRuntimeProvider>
   );
 }

@@ -13,3 +13,4 @@ export { issueDid } from './identity/did.ts';
 export { ELiabilityGraph } from './eliability/ELiabilityGraph.ts';
 export { createEarthRuntime } from './runtime/createEarthRuntime.ts';
 export { EarthRuntime } from './runtime/EarthRuntime.ts';
+export { EarthRuntimeProvider, useEarthRuntime } from './runtime/EarthRuntimeContext.tsx';
