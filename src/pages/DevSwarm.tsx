@@ -17,8 +17,9 @@ import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEarthRuntime } from '../sovereign/runtime/EarthRuntimeContext.tsx';
 import { SPECIALIST_CAPABILITIES } from '../sovereign/swarm/capabilities.ts';
-import type { EarthEvent, EarthEventType } from '../sovereign/types.ts';
+import type { EarthEvent, EarthEventType, EarthGraphNodeId } from '../sovereign/types.ts';
 import { assertNever } from '../sovereign/types.ts';
+import GraphHud from '../components/GraphHud.tsx';
 
 type StageId =
   | 'LOCATE'
@@ -41,7 +42,32 @@ const STAGES: { id: StageId; label: string; icon: typeof Cpu }[] = [
 
 type EventStatus = 'active' | 'success' | 'failure' | 'retry';
 
-function stageFor(type: EarthEventType): StageId {
+function stageForGraphNode(node: unknown): StageId {
+  const id = node as EarthGraphNodeId | undefined;
+  switch (id) {
+    case 'prime':
+      return 'LOCATE';
+    case 'h_agent':
+      return 'PLAN';
+    case 'compass':
+      return 'PLAN_REVIEW';
+    case 'vision':
+    case 's_agent':
+      return 'IMPLEMENT';
+    case 'ledger':
+      return 'CODE_REVIEW';
+    case 'tinker':
+      return 'TRIAL_EVALUATE';
+    case 'inkling':
+    case 'idle':
+    case undefined:
+      return 'VERDICT_DEPLOY';
+    default:
+      return assertNever(id, 'unmapped graph node');
+  }
+}
+
+function stageFor(type: EarthEventType, payload?: Record<string, unknown>): StageId {
   switch (type) {
     case 'prime.decision':
       return 'LOCATE';
@@ -65,6 +91,8 @@ function stageFor(type: EarthEventType): StageId {
     case 'tinker.job.submitted':
     case 'tinker.job.updated':
       return 'TRIAL_EVALUATE';
+    case 'graph.node':
+      return stageForGraphNode(payload?.node);
     case 'swarm.mission.completed':
     case 'prime.trajectory.recorded':
     case 'runtime.booted':
@@ -123,7 +151,7 @@ export default function DevSwarm() {
 
   const events = runtime.bus.history();
   const currentEvent = events.at(-1);
-  const currentStage = currentEvent ? stageFor(currentEvent.type) : null;
+  const currentStage = currentEvent ? stageFor(currentEvent.type, currentEvent.payload) : null;
   const lastStatus = currentEvent ? statusFor(currentEvent) : null;
   const trajectories = runtime.prime.trajectories();
   const blocked = trajectories.filter((row) => row.outcome.blocked > 0).length;
@@ -151,7 +179,7 @@ export default function DevSwarm() {
         <div>
           <h1 className="font-mono text-lg font-bold tracking-wide text-text-primary">DEV SWARM</h1>
           <p className="text-sm text-text-secondary">
-            Prime → H-Agent → COMPASS → S-Agents. Catalog missions on the live bus.
+            LangGraph Prime → H-Agent → COMPASS → S-Agents. Catalog missions on the live bus.
           </p>
         </div>
         <button
@@ -170,6 +198,8 @@ export default function DevSwarm() {
           {running ? 'SWARM RUNNING…' : 'RUN CATALOG'}
         </button>
       </div>
+
+      <GraphHud graph={runtime.graphState()} policy={runtime.policyStats()} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard
@@ -256,7 +286,7 @@ export default function DevSwarm() {
           <div className="flex flex-col gap-2">
             <AnimatePresence initial={false}>
               {events.map((ev) => {
-                const stage = stageFor(ev.type);
+                const stage = stageFor(ev.type, ev.payload);
                 const StageIcon = STAGES.find((item) => item.id === stage)?.icon ?? Cpu;
                 const status = statusFor(ev);
                 return (

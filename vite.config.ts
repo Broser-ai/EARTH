@@ -10,7 +10,16 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  appType: 'spa',
+  optimizeDeps: {
+    include: ['@langchain/langgraph', '@langchain/core'],
+  },
   server: {
     port: 5180,
+    host: true,
+  },
+  preview: {
+    port: 5180,
+    host: true,
   },
 });

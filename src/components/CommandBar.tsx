@@ -101,8 +101,8 @@ export default function CommandBar({ hitlPending, runtimeOnline }: CommandBarPro
             className={clsx(
               'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-mono text-[10px] tracking-wider transition-colors',
               activePath === '/uplink'
-                ? 'border-accent/40 bg-accent/10 text-accent'
-                : 'border-white/5 text-text-secondary hover:border-accent/30 hover:text-accent',
+                ? 'border-accent/50 bg-accent/15 text-accent'
+                : 'border-accent/40 bg-accent/10 text-accent hover:border-accent hover:bg-accent/20',
             )}
           >
             <Radio className="h-3 w-3" />

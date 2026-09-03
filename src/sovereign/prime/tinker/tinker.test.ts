@@ -18,6 +18,7 @@ const sample: Trajectory = {
     missionId: 'mission-cbam',
     policyKind: 'deterministic',
     trained: false,
+    trainedLabel: 'untrained',
     reason: 'fallback',
   },
   outcome: { missionId: 'mission-cbam', status: 'completed', executed: 1, blocked: 0, awaitingHitl: 0 },

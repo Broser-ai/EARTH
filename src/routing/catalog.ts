@@ -303,7 +303,7 @@ export const EARTH_ROUTES: readonly EarthRoute[] = [
     band: 'MISSION',
     callsign: 'SWARM',
     label: 'Dev swarm',
-    blurb: 'Prime → H-Agent → S-Agents live run',
+    blurb: 'LangGraph Prime → H-Agent → COMPASS → S-Agents live run',
   },
   {
     path: '/mission/aegis',
@@ -339,7 +339,7 @@ export const EARTH_ROUTES: readonly EarthRoute[] = [
     band: 'MISSION',
     callsign: 'PRIME',
     label: 'Prime policy',
-    blurb: 'Inkling brain + Tinker fine-tune — untrained until weights exist',
+    blurb: 'Session-rl Prime + Inkling/Tinker slots — LangGraph is the swarm runtime',
   },
   {
     path: '/uplink',
