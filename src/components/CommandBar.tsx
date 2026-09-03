@@ -54,6 +54,9 @@ export default function CommandBar({ activeSection, onNavigate }: CommandBarProp
       </div>
 
       <div className="flex items-center gap-3">
+        <span className="rounded border border-amber/40 px-2 py-0.5 font-mono text-[10px] tracking-wider text-amber">
+          DEVELOPMENT
+        </span>
         <span className="text-[11px] text-text-secondary">{tenantName}</span>
         <div className="flex h-[28px] w-[28px] items-center justify-center rounded-full bg-accent/10">
           <span className="font-mono text-[10px] font-bold text-accent">{tenantInitials}</span>
