@@ -10,7 +10,12 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  appType: 'spa',
+  optimizeDeps: {
+    exclude: ['vitest'],
+  },
   server: {
     port: 5180,
+    host: true,
   },
 });

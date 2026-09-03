@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import clsx from 'clsx';
-import { ArrowUpRight, ArrowDownRight, AlertTriangle, Truck, CheckCircle2, Clock, Package, Leaf, Shield } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, AlertTriangle, Truck, CheckCircle2, Clock, Package, Leaf, Shield, Radio } from 'lucide-react';
+import { EarthLink } from '../routing/EarthLink.tsx';
+import { UPLINK_HINT, UPLINK_LABEL, UPLINK_PATH } from '../routing/uplinkControl.ts';
 
 const KPIS = [
   { label: 'CO₂ Saved', value: '2,847', unit: 't', delta: '+12.3%', positive: true },
@@ -62,6 +64,27 @@ export default function Overview() {
             <button key={r} onClick={() => setTimeRange(r)} className={clsx('px-3 py-1 rounded-md text-[9px] font-mono uppercase tracking-wider transition-colors', timeRange === r ? 'bg-[#60A5FA]/10 text-[#60A5FA]' : 'text-[#64748B] hover:text-[#94A3B8]')}>{r}</button>
           ))}
         </div>
+      </div>
+
+      <div
+        data-testid="home-uplink"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent/30 bg-accent/5 px-4 py-2.5"
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <Radio className="h-4 w-4 shrink-0 text-accent" />
+          <div className="min-w-0">
+            <p className="font-mono text-[10px] tracking-[0.28em] text-accent">{UPLINK_LABEL}</p>
+            <p className="truncate font-mono text-[12px] text-text-primary">
+              Canonical flight paths · origin + path · {UPLINK_HINT}
+            </p>
+          </div>
+        </div>
+        <EarthLink
+          to={UPLINK_PATH}
+          className="shrink-0 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 font-mono text-[11px] tracking-wider text-accent hover:border-accent hover:bg-accent/20"
+        >
+          OPEN {UPLINK_HINT}
+        </EarthLink>
       </div>
 
       <div className="grid grid-cols-5 gap-3">

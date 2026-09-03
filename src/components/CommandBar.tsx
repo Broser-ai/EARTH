@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Activity, Copy, Radio } from 'lucide-react';
 import clsx from 'clsx';
 import { AnimatePresence, motion } from 'motion/react';
@@ -9,6 +9,13 @@ import {
 } from '../routing/catalog.ts';
 import { EarthLink } from '../routing/EarthLink.tsx';
 import { useRouter } from '../routing/Router.tsx';
+import {
+  activateUplink,
+  COMMAND_BAR_UPLINK,
+  UPLINK_HINT,
+  UPLINK_LABEL,
+  UPLINK_PATH,
+} from '../routing/uplinkControl.ts';
 import UplinkManifest from './UplinkManifest';
 
 export type { EarthSection };
@@ -37,13 +44,40 @@ const tenantName = 'Hornbach Germany';
 const tenantInitials = 'HB';
 
 export default function CommandBar({ hitlPending, runtimeOnline }: CommandBarProps) {
-  const { match, canonical, copyCanonical, navigate } = useRouter();
+  const { match, canonical, copyCanonical, navigate, path } = useRouter();
   const [copied, setCopied] = useState(false);
   const [uplinkOpen, setUplinkOpen] = useState(false);
+
+  const openUplink = useCallback(() => {
+    activateUplink({ path, navigate, setOverlayOpen: setUplinkOpen });
+  }, [path, navigate]);
+
+  useEffect(() => {
+    if (path !== UPLINK_PATH) setUplinkOpen(false);
+  }, [path]);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.defaultPrevented) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target;
+      if (target instanceof HTMLElement) {
+        const tag = target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return;
+      }
+      if (event.key === 'u' || event.key === 'U') {
+        event.preventDefault();
+        openUplink();
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [openUplink]);
 
   const activeSection = match.kind === 'known' ? match.route.section : null;
   const activePath = match.kind === 'known' ? match.route.path : null;
   const pages = activeSection ? routesForSection(activeSection) : [];
+  const uplinkLive = activePath === UPLINK_PATH;
 
   async function handleCopy() {
     const ok = await copyCanonical();
@@ -77,6 +111,27 @@ export default function CommandBar({ hitlPending, runtimeOnline }: CommandBarPro
               </EarthLink>
             ))}
           </nav>
+
+          <button
+            type="button"
+            data-testid="command-bar-uplink"
+            aria-label={`${COMMAND_BAR_UPLINK.label} — canonical flight paths ${UPLINK_HINT}`}
+            aria-current={uplinkLive ? 'page' : undefined}
+            title={`${UPLINK_LABEL} · ${UPLINK_HINT} · key U`}
+            onClick={openUplink}
+            className={clsx(
+              'flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-[11px] tracking-[0.18em] transition-colors',
+              uplinkLive || uplinkOpen
+                ? 'border-accent/50 bg-accent/15 text-accent'
+                : 'border-accent/40 bg-accent/10 text-accent hover:border-accent hover:bg-accent/20',
+            )}
+          >
+            <Radio className="h-3.5 w-3.5" />
+            <span>{UPLINK_LABEL}</span>
+            <span className="hidden font-mono text-[10px] tracking-normal text-accent/80 sm:inline">
+              {UPLINK_HINT}
+            </span>
+          </button>
         </div>
 
         <div className="flex min-w-0 items-center gap-3">
@@ -94,20 +149,6 @@ export default function CommandBar({ hitlPending, runtimeOnline }: CommandBarPro
               <span className="font-mono text-[9px] tracking-wider text-success">COPIED</span>
             )}
           </div>
-
-          <button
-            type="button"
-            onClick={() => setUplinkOpen(true)}
-            className={clsx(
-              'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-mono text-[10px] tracking-wider transition-colors',
-              activePath === '/uplink'
-                ? 'border-accent/40 bg-accent/10 text-accent'
-                : 'border-white/5 text-text-secondary hover:border-accent/30 hover:text-accent',
-            )}
-          >
-            <Radio className="h-3 w-3" />
-            UPLINK
-          </button>
 
           <span
             className={clsx(
@@ -153,7 +194,7 @@ export default function CommandBar({ hitlPending, runtimeOnline }: CommandBarPro
         {match.kind === 'unknown' && (
           <span className="font-mono text-[10px] tracking-wider text-amber">NO STATION · {match.path}</span>
         )}
-        {activePath === '/uplink' && pages.length === 0 && (
+        {uplinkLive && pages.length === 0 && (
           <span className="font-mono text-[10px] tracking-wider text-accent">FLIGHT PATH MANIFEST</span>
         )}
       </div>
@@ -181,11 +222,11 @@ export default function CommandBar({ hitlPending, runtimeOnline }: CommandBarPro
                     type="button"
                     onClick={() => {
                       setUplinkOpen(false);
-                      navigate('/uplink');
+                      if (path !== UPLINK_PATH) navigate(UPLINK_PATH);
                     }}
                     className="rounded-lg border border-white/5 px-2.5 py-1 font-mono text-[10px] tracking-wider text-text-secondary hover:text-accent"
                   >
-                    EXPAND /uplink
+                    EXPAND {UPLINK_HINT}
                   </button>
                   <button
                     type="button"

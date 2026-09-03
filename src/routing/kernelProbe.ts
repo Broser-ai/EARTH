@@ -63,12 +63,16 @@ const discoveryGlob = import.meta.glob<{ SETUP_INVENTORY?: readonly InventoryRow
   { eager: true },
 );
 
-const visionGlob = import.meta.glob('../sovereign/vision/**/*.ts', { eager: true });
+const visionGlob = import.meta.glob(['../sovereign/vision/**/*.ts', '!../sovereign/vision/**/*.test.ts'], {
+  eager: true,
+});
 const inklingGlob = import.meta.glob<{ EARTH_DEFAULT_LESSON?: { id: string; title: string } }>(
-  '../sovereign/prime/inkling/**/*.ts',
+  ['../sovereign/prime/inkling/**/*.ts', '!../sovereign/prime/inkling/**/*.test.ts'],
   { eager: true },
 );
-const tinkerGlob = import.meta.glob('../sovereign/prime/tinker/**/*.ts', { eager: true });
+const tinkerGlob = import.meta.glob(['../sovereign/prime/tinker/**/*.ts', '!../sovereign/prime/tinker/**/*.test.ts'], {
+  eager: true,
+});
 
 const RUNTIME_KEYS: Record<AdapterId, readonly string[]> = {
   roboflow: ['roboflow', 'vision', 'visionAdapter'],
@@ -188,6 +192,10 @@ export function inklingLesson(): { id: string; title: string } | null {
     if (mod.EARTH_DEFAULT_LESSON) return mod.EARTH_DEFAULT_LESSON;
   }
   return null;
+}
+
+export function probeModulePaths(): string[] {
+  return [...Object.keys(discoveryGlob), ...Object.keys(visionGlob), ...Object.keys(inklingGlob), ...Object.keys(tinkerGlob)];
 }
 
 void asAdapterId;
