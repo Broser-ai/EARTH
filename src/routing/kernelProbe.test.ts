@@ -22,7 +22,6 @@ describe('kernelProbe', () => {
     const lesson = inklingLesson();
     expect(lesson?.id).toBe('lesson-prime-mission-select');
   });
-
   it('does not glob adapter test files into the client graph', () => {
     const paths = probeModulePaths();
     expect(paths.some((path) => path.includes('.test.'))).toBe(false);

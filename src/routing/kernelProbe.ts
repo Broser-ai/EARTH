@@ -80,11 +80,6 @@ const RUNTIME_KEYS: Record<AdapterId, readonly string[]> = {
   tinker: ['tinker', 'tinkerClient', 'rlTrainer'],
 };
 
-function asAdapterId(value: string): AdapterId | null {
-  if (value === 'roboflow' || value === 'inkling' || value === 'tinker') return value;
-  return null;
-}
-
 function asPresence(value: string): AdapterPresence {
   if (value === 'mcp_ready' || value === 'mcp_needs_auth' || value === 'absent' || value === 'awaiting_kernel') {
     return value;
@@ -197,5 +192,3 @@ export function inklingLesson(): { id: string; title: string } | null {
 export function probeModulePaths(): string[] {
   return [...Object.keys(discoveryGlob), ...Object.keys(visionGlob), ...Object.keys(inklingGlob), ...Object.keys(tinkerGlob)];
 }
-
-void asAdapterId;

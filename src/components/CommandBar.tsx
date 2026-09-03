@@ -177,6 +177,15 @@ export default function CommandBar({ hitlPending, runtimeOnline }: CommandBarPro
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto px-6 py-1.5">
+        <button
+          type="button"
+          onClick={() => void handleCopy()}
+          className="mr-2 flex max-w-[50%] shrink-0 items-center gap-1.5 truncate font-mono text-[10px] text-text-muted hover:text-accent lg:hidden"
+          title="Copy canonical URL"
+        >
+          <Copy className="h-3 w-3 shrink-0" />
+          <span className="truncate">{canonical}</span>
+        </button>
         {pages.map((page) => (
           <EarthLink
             key={page.path}
