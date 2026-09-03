@@ -37,7 +37,8 @@ describe('kernel adapters in the Prime → H → S → COMPASS equation', () => 
     expect(runtime.bus.history().some((event) => event.type === 'intake.observed')).toBe(true);
     expect(runtime.bus.history().some((event) => event.type === 'inkling.lesson.attached')).toBe(true);
     expect(runtime.inkling.hookedEpisodes()[0]?.lessonId).toBe('lesson-prime-mission-select');
-    expect(runtime.prime.trajectories()[0]?.decision.trained).toBe(false);
+    expect(runtime.prime.trajectories()[0]?.decision.trained).toBe(true);
+    expect(runtime.prime.trajectories()[0]?.decision.trainedLabel).toBe('session-rl');
   });
 
   it('lets COMPASS block a mission even when a trained Inkling policy selected it', async () => {

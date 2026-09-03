@@ -20,6 +20,35 @@ const CLEAN: Record<string, unknown> = {
   eudrDeforestationIndex: 0.01,
 };
 
+export const WARGAME_BLOCKED: ProposedAction = task(
+  'wargame-batch-br',
+  'compliance.gate',
+  'Clear material batch MB-2026-0451 from SUP-BR-001',
+  {
+    jurisdiction: 'BR',
+    laborFairness: 0.31,
+    kgCO2e: 40,
+    method: 'estimated',
+    eudrDeforestationIndex: 0.082,
+  },
+  'high',
+);
+
+export const WARGAME_ALTERNATE: ProposedAction = task(
+  'wargame-batch-de',
+  'ops.intake',
+  'Source 15.2t rPET from SUP-DE-044',
+  {
+    jurisdiction: 'DE',
+    laborFairness: 0.86,
+    kgCO2e: 22,
+    method: 'measured',
+    eudrDeforestationIndex: 0.01,
+    supplier: 'SUP-DE-044',
+    tonnes: 15.2,
+  },
+);
+
 export const MISSION_CATALOG: MissionSpec[] = [
   {
     id: 'mission-cbam',
@@ -70,33 +99,14 @@ export const MISSION_CATALOG: MissionSpec[] = [
       }),
     ],
   },
+  {
+    id: 'mission-eudr-block',
+    title: 'EUDR shock — SUP-BR-001',
+    tasks: [WARGAME_BLOCKED],
+  },
+  {
+    id: 'mission-de-alternate',
+    title: 'DE alternate — SUP-DE-044',
+    tasks: [WARGAME_ALTERNATE],
+  },
 ];
-
-export const WARGAME_BLOCKED: ProposedAction = task(
-  'wargame-batch-br',
-  'compliance.gate',
-  'Clear material batch MB-2026-0451 from SUP-BR-001',
-  {
-    jurisdiction: 'BR',
-    laborFairness: 0.31,
-    kgCO2e: 40,
-    method: 'estimated',
-    eudrDeforestationIndex: 0.082,
-  },
-  'high',
-);
-
-export const WARGAME_ALTERNATE: ProposedAction = task(
-  'wargame-batch-de',
-  'ops.intake',
-  'Source 15.2t rPET from SUP-DE-044',
-  {
-    jurisdiction: 'DE',
-    laborFairness: 0.86,
-    kgCO2e: 22,
-    method: 'measured',
-    eudrDeforestationIndex: 0.01,
-    supplier: 'SUP-DE-044',
-    tonnes: 15.2,
-  },
-);

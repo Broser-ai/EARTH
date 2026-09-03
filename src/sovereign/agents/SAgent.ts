@@ -3,6 +3,7 @@ import type { CompassGate } from '../compass/CompassGate.ts';
 import type { CapabilityTree } from '../swarm/capabilities.ts';
 import type {
   AgentResult,
+  CompassVerdict,
   EarthCtx,
   ProposedAction,
 } from '../types.ts';
@@ -74,6 +75,42 @@ export class SAgent {
       payload: { actionId: action.id, allow: verdict.allow, digest: verdict.digest },
     });
 
+    return this.executeAfterVerdict(action, ctx, deps, verdict);
+  }
+
+  async executeAfterVerdict(
+    action: ProposedAction,
+    ctx: EarthCtx,
+    deps: AgentDeps,
+    verdict: CompassVerdict,
+    options?: { output?: unknown },
+  ): Promise<AgentResult> {
+    if (action.capability !== this.capability) {
+      deps.bus.emit({
+        type: 'agent.refused',
+        source: this.id,
+        message: `capability mismatch: ${action.capability}`,
+        payload: { actionId: action.id },
+      });
+      return {
+        agentId: this.id,
+        actionId: action.id,
+        status: 'refused',
+        reason: `S-Agent ${this.id} is scoped to ${this.capability}`,
+        verdict,
+      };
+    }
+
+    if (!deps.tree.can(action.capability)) {
+      return {
+        agentId: this.id,
+        actionId: action.id,
+        status: 'refused',
+        reason: `capability ${action.capability} is not on the EARTH tree`,
+        verdict,
+      };
+    }
+
     if (!verdict.allow) {
       deps.bus.emit({
         type: 'agent.blocked',
@@ -113,7 +150,7 @@ export class SAgent {
       payload: { actionId: action.id },
     });
 
-    const output = await this.run(action, ctx);
+    const output = options && 'output' in options ? options.output : await this.run(action, ctx);
     deps.bus.emit({
       type: 'agent.completed',
       source: this.id,

@@ -22,7 +22,8 @@ export type EarthEventType =
   | 'tinker.job.submitted'
   | 'tinker.job.updated'
   | 'inkling.lesson.attached'
-  | 'adapter.status';
+  | 'adapter.status'
+  | 'graph.node';
 
 export interface EarthEvent {
   id: string;
@@ -116,11 +117,41 @@ export interface MissionState {
 
 export type PolicyKind = 'rl' | 'deterministic';
 
+export type PolicyTrainedLabel = 'untrained' | 'session-rl' | 'inkling' | 'tinker';
+
+export type EarthGraphNodeId =
+  | 'idle'
+  | 'prime'
+  | 'h_agent'
+  | 'compass'
+  | 'vision'
+  | 's_agent'
+  | 'ledger'
+  | 'tinker'
+  | 'inkling';
+
+export interface GraphTick {
+  node: EarthGraphNodeId;
+  ts: string;
+  summary: string;
+}
+
 export interface PolicyDecision {
   missionId: string;
   policyKind: PolicyKind;
   trained: boolean;
+  trainedLabel: PolicyTrainedLabel;
   reason: string;
+  probabilities?: Record<string, number>;
+}
+
+export interface PolicySnapshot {
+  trainedLabel: PolicyTrainedLabel;
+  episodes: number;
+  logits: Record<string, number>;
+  pulls: Record<string, number>;
+  meanReward: Record<string, number>;
+  probabilities: Record<string, number>;
 }
 
 export interface Trajectory {

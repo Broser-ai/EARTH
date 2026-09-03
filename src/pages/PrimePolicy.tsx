@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import { Compass, Cpu, Radio } from 'lucide-react';
+import GraphHud from '../components/GraphHud.tsx';
 import { EarthLink } from '../routing/EarthLink.tsx';
 import { useRouter } from '../routing/Router.tsx';
 import {
@@ -19,7 +20,9 @@ export default function PrimePolicy() {
   const tinker = probeAdapter('tinker', runtime);
   const lesson = inklingLesson();
   const trajectories = runtime.prime.trajectories();
-  const trained = runtime.inkling.trained();
+  const inklingTrained = runtime.inkling.trained();
+  const session = runtime.policyStats();
+  const acting = runtime.prime.actingTrainedLabel();
 
   return (
     <div className="space-y-4 text-text-primary">
@@ -28,20 +31,24 @@ export default function PrimePolicy() {
           <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-accent">MISSION / PRIME</p>
           <h1 className="mt-1 font-mono text-lg font-bold tracking-widest">PRIME POLICY</h1>
           <p className="mt-1 max-w-xl text-sm text-text-secondary">
-            Inkling is the policy brain. Tinker fine-tunes from Prime trajectories. Until weights
-            exist, the kernel refuses to invent a policy and uses the deterministic fallback.
+            Live Prime is an in-session softmax bandit until Inkling/Tinker weights exist. HUD reads{' '}
+            <span className="font-mono text-accent">trained={acting}</span>
+            {acting === 'session-rl' ? ' — not a hosted brain, not a STARK.' : '.'} COMPASS still
+            blocks illegal actions.
           </p>
         </div>
         <span className="font-mono text-[11px] text-text-muted">{canonical}</span>
       </div>
 
+      <GraphHud graph={runtime.graphState()} policy={session} />
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatusTile label="RL trained" value={trained ? 'YES' : 'NO'} tone={trained ? 'success' : 'amber'} />
+        <StatusTile label="RL trained" value={acting} tone={acting === 'untrained' ? 'amber' : 'success'} />
         <StatusTile label="Trajectories" value={String(trajectories.length)} tone="accent" />
         <StatusTile
           label="Inkling"
-          value={presenceLabel(inkling.presence)}
-          tone={presenceTone(inkling.presence)}
+          value={inklingTrained ? 'WEIGHTS' : presenceLabel(inkling.presence)}
+          tone={inklingTrained ? 'success' : presenceTone(inkling.presence)}
         />
         <StatusTile
           label="Tinker"

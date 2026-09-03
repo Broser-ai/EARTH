@@ -8,9 +8,11 @@ import {
   Swords,
   Terminal,
   GitBranch,
+  Play,
 } from 'lucide-react';
 import clsx from 'clsx';
 import KernelAdapterHud from '../components/KernelAdapterHud.tsx';
+import GraphHud from '../components/GraphHud.tsx';
 import { useEarthRuntime } from '../sovereign/runtime/EarthRuntimeContext.tsx';
 import { SPECIALIST_CAPABILITIES } from '../sovereign/swarm/capabilities.ts';
 
@@ -34,8 +36,8 @@ export default function CommandCenter() {
       name: 'Prime Agent',
       icon: Compass,
       stats: [
-        { label: 'Policy', value: runtime.prime.trajectories()[0]?.decision.policyKind ?? 'deterministic' },
-        { label: 'RL trained', value: runtime.inkling.trained() ? 'yes' : 'no' },
+        { label: 'Policy', value: runtime.prime.actingTrainedLabel() },
+        { label: 'RL trained', value: runtime.prime.actingTrainedLabel() },
         { label: 'Trajectories', value: String(trajectories.length) },
       ],
     },
@@ -97,12 +99,29 @@ export default function CommandCenter() {
         <div>
           <h1 className="font-mono text-lg font-bold tracking-widest">SOVEREIGN COMMAND CENTER</h1>
           <p className="mt-1 text-xs text-text-secondary">
-            Kernel HUD — bus, COMPASS, swarm, Prime, ledger, e-liability
+            Kernel HUD — LangGraph ticks, session-rl Prime, COMPASS, e-liability spine
           </p>
         </div>
 
-        <button
-          onClick={() => (online ? runtime.halt() : runtime.boot())}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              void runtime.runNextMission();
+            }}
+            disabled={!online || runtime.pendingMissions().length === 0}
+            className={clsx(
+              'flex items-center gap-2 rounded-lg border px-4 py-2.5 font-mono text-xs font-semibold tracking-wider transition-all',
+              !online || runtime.pendingMissions().length === 0
+                ? 'cursor-not-allowed border-white/5 bg-white/[0.03] text-text-muted'
+                : 'border-accent/30 bg-accent/10 text-accent hover:bg-accent/20',
+            )}
+          >
+            <Play className="h-4 w-4" />
+            RUN NEXT MISSION
+          </button>
+          <button
+            onClick={() => (online ? runtime.halt() : runtime.boot())}
           className={clsx(
             'flex items-center gap-2 rounded-lg border px-5 py-2.5 font-mono text-xs font-semibold tracking-wider transition-all',
             online
@@ -113,12 +132,15 @@ export default function CommandCenter() {
           <Power className="h-4 w-4" />
           {online ? 'HALT RUNTIME' : 'BOOT RUNTIME'}
         </button>
+        </div>
       </div>
 
       <KernelAdapterHud adapters={runtime.adapterStatus()} />
 
+      <GraphHud graph={runtime.graphState()} policy={runtime.policyStats()} />
+
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile label="Kernel modules" value="9" />
+        <StatTile label="Kernel modules" value="10" />
         <StatTile
           label="Runtime"
           value={online ? 'ONLINE' : 'COLD'}
