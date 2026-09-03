@@ -123,12 +123,16 @@ export class SessionRlPolicy implements RlPolicy {
     this.pulls.set(selected, (this.pulls.get(selected) ?? 0) + 1);
     this.rewardSum.set(selected, (this.rewardSum.get(selected) ?? 0) + reward);
 
-    const ids = Object.keys(decision.probabilities ?? { [selected]: 1 });
-    if (!ids.includes(selected)) ids.push(selected);
-    const probs = decision.probabilities ?? this.probabilitiesFor(ids);
+    const ids = new Set<string>([
+      ...this.logits.keys(),
+      selected,
+      ...Object.keys(decision.probabilities ?? {}),
+    ]);
+    const idList = [...ids];
+    const probs = this.probabilitiesFor(idList);
 
-    for (const id of ids) {
-      const pi = probs[id] ?? (id === selected ? 1 : 0);
+    for (const id of idList) {
+      const pi = probs[id] ?? 0;
       const indicator = id === selected ? 1 : 0;
       const current = this.logits.get(id) ?? 0;
       this.logits.set(id, current + this.learningRate * reward * (indicator - pi));
