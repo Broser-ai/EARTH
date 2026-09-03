@@ -379,7 +379,7 @@ export class PrimeService {
 
       const result = runDeterministicTask({
         id: task.id,
-        taskType: task.taskType,
+        taskType: task.task_type,
         state: 'RUNNING',
         input: asRecord(task.input_json),
       });
@@ -465,7 +465,7 @@ export class PrimeService {
         nextState,
         output: result.output,
         metadata: {
-          taskType: task.taskType,
+          taskType: task.task_type,
           reasonCodes: result.reasonCodes,
           errorCode: result.errorCode,
         },

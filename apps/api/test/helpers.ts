@@ -88,14 +88,24 @@ export async function drainSession(
   sessionId: string,
   headers: Record<string, string> = { ...devHeaders },
 ) {
+  const terminal = new Set([
+    'COMPLETED',
+    'FAILED',
+    'CANCELLED',
+    'BUDGET_STOPPED',
+    'EXPIRED',
+  ]);
   let last = await app.inject({
     method: 'POST',
     url: `/v1/sessions/${sessionId}/run-next`,
     headers,
   });
   for (let i = 0; i < 8; i += 1) {
-    const body = last.json() as { claimedTask?: unknown };
-    if (!body.claimedTask) {
+    const body = last.json() as { claimedTask?: unknown; session?: { state?: string } };
+    if (last.statusCode !== 200) {
+      return last;
+    }
+    if (!body.claimedTask || (body.session?.state && terminal.has(body.session.state))) {
       return last;
     }
     last = await app.inject({

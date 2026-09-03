@@ -2,7 +2,7 @@ export const DEVELOPMENT_MODE = 'DEVELOPMENT_ONLY' as const;
 
 export type DevelopmentMode = typeof DEVELOPMENT_MODE;
 
-export function developmentEnvelope<T extends Record<string, unknown>>(
+export function developmentEnvelope<T extends object>(
   body: T,
 ): T & { mode: DevelopmentMode } {
   return { mode: DEVELOPMENT_MODE, ...body };

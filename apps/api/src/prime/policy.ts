@@ -121,7 +121,6 @@ export function planMaterialOpportunity(input: StartOpportunityInput): PolicyPla
     throw new PolicyError('BUDGET_EXCEEDED', 'task plan exceeds max_tasks');
   }
 
-  void sharedInput;
   return {
     budget: MATERIAL_OPPORTUNITY_BUDGET,
     tasks,
