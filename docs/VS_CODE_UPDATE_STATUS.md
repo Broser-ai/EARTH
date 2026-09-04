@@ -1,16 +1,20 @@
 # VS Code Guardian Update Status
 
-Current branch: `chore/vscode-engineering-guardian`. v0.3 starting SHA: `a4ed735f77f7a7426d97c0f0f9cc7b67e9e9c408` (`chore(vscode): improve EARTH verification diagnostics`).
+Current verification branch: `fix/oidc-integration-test-membership`. Docker-backed integration verification follows Security Foundation commits from `chore/vscode-engineering-guardian`.
 
 ## What VS Code Can Verify Without Docker
 
 Run `EARTH: Partial verification (no Docker)` to run SPA/API typechecks, lint, format check, SPA tests, SPA/API builds, and `npm audit`. `EARTH: API smoke check` and `EARTH: Frontend smoke check` separately verify running local endpoints; they fail with start instructions when their process is absent.
 
-v0.3 partial verification passed: `git diff --check`, SPA/API typechecks, lint, format check, all 84 SPA tests, SPA/API builds, and `npm audit` (0 vulnerabilities). The secret-pattern review found no committed credential values. The unsupported-claim review found only `Post-Quantum Crypto (SIMULATION)`.
+Docker-backed verification passed: `git diff --check`, SPA/API typechecks, lint, format check, 85 SPA tests, 42 API tests, SPA/API builds, and `npm audit` (0 vulnerabilities). The secret-pattern review found no committed credential values. The unsupported-claim review found only `Post-Quantum Crypto (SIMULATION)` and a non-user-facing Roboflow comment.
 
 ## Docker-Blocked Work
 
-Docker is `BLOCKED_BY_DOCKER`: `docker` is unavailable on `PATH`; the Docker Verification Pass therefore cannot run `docker --version`, `docker compose version`, or `docker info`. PostgreSQL, migrations, database-dependent API tests, API runtime smoke checks, intake-flow verification, and `EARTH: Full verification (Docker required)` are not run. Install and start Docker Desktop as described in `docs/DOCKER_SETUP.md`, then run `EARTH: Check Docker and Postgres prerequisites` followed by `EARTH: Full verification (Docker required)`.
+Docker Desktop is available: Docker `29.7.2`, Compose `v5.5.0`, and the local `postgres:16-alpine` service is healthy. Migration `004_oidc_memberships.sql` applied successfully. Host-side commands require `DATABASE_URL='postgres://earth:earth@localhost:5432/earth'`, because Compose does not export container environment variables to the host shell.
+
+API runtime smoke passed in explicit `NODE_ENV=development` / `EARTH_AUTH_MODE=development` mode. `/health` was `DEVELOPMENT_ONLY`; `/v1/info` reported authentication, NanoChat, reinforcement learning, recycler network, external APIs, blockchain, and digital product passports as false.
+
+The DEVELOPMENT intake E2E passed: repeated idempotency key returned the same session; deterministic tasks reached `WAITING_FOR_DEPENDENCY` with `EVIDENCE_MISSING`, `INPUT_UNVERIFIED`, and `RECYCLER_NETWORK_NOT_CONNECTED`; 15 audit events persisted with organization ID, actor ID, auth mode, correlation ID, event type, and timestamp. API tests passed RBAC and tenant-isolation coverage. The second test tenant required an active membership fixture after `004_oidc_memberships.sql`; that isolated repair is on `fix/oidc-integration-test-membership`.
 
 ## Tinker Verdict
 
@@ -18,4 +22,4 @@ The previous Tinker failure was a product-truth bug: a local `TINKER_API_KEY` se
 
 ## Remaining Limits
 
-Development headers are not authentication. EARTH has no OIDC or RLS; no live AI, external integrations, blockchain/ZK, CSRD/PPWR/DPP engine, recycler network, or trained RL. Passing local checks does not make EARTH production-ready.
+Development headers are not authentication. OIDC provider support is implemented but not deployment-configured; PostgreSQL RLS is planned but not deployed. EARTH has no live AI, external integrations, blockchain/ZK, CSRD/PPWR/DPP engine, recycler network, or trained RL. Passing local checks does not make EARTH production-ready.

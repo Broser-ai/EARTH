@@ -10,6 +10,7 @@ Install both independently packaged applications, then start local PostgreSQL an
 npm install
 npm --prefix apps/api install
 docker compose up -d
+export DATABASE_URL='postgres://earth:earth@localhost:5432/earth'
 npm run db:migrate
 ```
 
@@ -19,6 +20,8 @@ In separate terminals, run the API and SPA:
 npm run api:dev
 npm run dev
 ```
+
+The Compose environment configures PostgreSQL inside its container; host-side migration and API commands need `DATABASE_URL` in the shell or an uncommitted `.env` file.
 
 The API is available on `http://localhost:3001`; the SPA is available on `http://localhost:5180`. Use the `EARTH:` VS Code tasks for the same commands. Start debug with `EARTH: Debug API + launch SPA`; browser launch requires the built-in or installed Chrome debugger support.
 
