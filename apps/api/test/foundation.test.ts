@@ -69,11 +69,12 @@ describe('API foundation (DEVELOPMENT_ONLY)', () => {
     });
     expect(response.statusCode).toBe(404);
     expect(response.headers['x-earth-mode']).toBe(DEVELOPMENT_MODE);
-    expect(response.json()).toEqual({
+    expect(response.json()).toMatchObject({
       mode: DEVELOPMENT_MODE,
       error: {
-        code: 'NOT_FOUND',
-        message: 'no route for POST /v1/no-such-route',
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Resource not found.',
+        correlationId: expect.any(String),
       },
     });
   });

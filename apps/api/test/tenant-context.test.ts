@@ -67,6 +67,44 @@ describe('TenantContext and DEVELOPMENT AuthProvider', () => {
     expect(count.rows[0].n).toBe(0);
   });
 
+  it('ignores client-supplied organization and role headers', async () => {
+    const start = await app.inject({
+      method: 'POST',
+      url: '/v1/material-opportunities/start',
+      headers: { ...devHeaders, 'x-earth-org-id': OTHER_ORG, 'x-earth-user-role': 'VIEWER' },
+      payload: { ...demoBody, idempotencyKey: 'ignored-development-headers' },
+    });
+    expect(start.statusCode).toBe(201);
+    const sessionId = start.json().session.id;
+    const stored = await pool.query<{ organization_id: string }>(
+      'SELECT organization_id FROM execution_sessions WHERE id = $1',
+      [sessionId],
+    );
+    expect(stored.rows[0]?.organization_id).toBe(DEV_ORG);
+  });
+
+  it('rejects unknown and suspended development users', async () => {
+    const unknown = await app.inject({
+      method: 'POST',
+      url: '/v1/material-opportunities/start',
+      headers: { 'x-earth-user-id': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' },
+      payload: { ...demoBody, idempotencyKey: 'unknown-development-user' },
+    });
+    expect(unknown.statusCode).toBe(401);
+    expect(unknown.json().error.code).toBe('AUTHENTICATION_REQUIRED');
+
+    await pool.query(`UPDATE organization_memberships SET status = 'SUSPENDED' WHERE user_id = $1`, [DEV_USER]);
+    const suspended = await app.inject({
+      method: 'POST',
+      url: '/v1/material-opportunities/start',
+      headers: devHeaders,
+      payload: { ...demoBody, idempotencyKey: 'suspended-development-user' },
+    });
+    expect(suspended.statusCode).toBe(403);
+    expect(suspended.json().error.code).toBe('FORBIDDEN');
+    await pool.query(`UPDATE organization_memberships SET status = 'ACTIVE' WHERE user_id = $1`, [DEV_USER]);
+  });
+
   it('lets VIEWER read a session but not run-next', async () => {
     const created = await app.inject({
       method: 'POST',

@@ -40,13 +40,13 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
     try {
       canStartMaterialOpportunity(request.earthTenant);
     } catch (error) {
-      return sendAuthError(request, reply, error);
+      return sendAuthError(service, request, reply, error, 'material-opportunity:start');
     }
 
     const parsed = startBodySchema.safeParse(request.body);
     if (!parsed.success) {
       const mapped = mapZodError(parsed.error);
-      return reply.status(400).send(modeError(request.server.earthAuthMode, mapped.code, mapped.message));
+      return reply.status(400).send(requestError(request, mapped.code, mapped.message));
     }
 
     const input = toStartInput(parsed.data);
@@ -62,7 +62,7 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
     try {
       canReadSession(request.earthTenant);
     } catch (error) {
-      return sendAuthError(request, reply, error);
+      return sendAuthError(service, request, reply, error, 'session:read');
     }
 
     const sessionId = (request.params as { sessionId: string }).sessionId;
@@ -70,7 +70,7 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
     if (!envelope) {
       return reply
         .status(404)
-        .send(modeError(request.server.earthAuthMode, 'SESSION_NOT_FOUND', 'session not found for this organization'));
+        .send(requestError(request, 'RESOURCE_NOT_FOUND', 'Resource not found.'));
     }
     return reply.send(modeEnvelope(request.server.earthAuthMode, envelope));
   });
@@ -79,7 +79,7 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
     try {
       canReadAuditEvents(request.earthTenant);
     } catch (error) {
-      return sendAuthError(request, reply, error);
+      return sendAuthError(service, request, reply, error, 'audit-events:read');
     }
 
     const sessionId = (request.params as { sessionId: string }).sessionId;
@@ -87,7 +87,7 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
     if (!events) {
       return reply
         .status(404)
-        .send(modeError(request.server.earthAuthMode, 'SESSION_NOT_FOUND', 'session not found for this organization'));
+        .send(requestError(request, 'RESOURCE_NOT_FOUND', 'Resource not found.'));
     }
     return reply.send(modeEnvelope(request.server.earthAuthMode, { events }));
   });
@@ -96,7 +96,7 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
     try {
       canRunDevelopmentTask(request.earthTenant);
     } catch (error) {
-      return sendAuthError(request, reply, error);
+      return sendAuthError(service, request, reply, error, 'session:run-next');
     }
 
     const sessionId = (request.params as { sessionId: string }).sessionId;
@@ -105,7 +105,7 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
       if (!result) {
         return reply
           .status(404)
-          .send(modeError(request.server.earthAuthMode, 'SESSION_NOT_FOUND', 'session not found for this organization'));
+          .send(requestError(request, 'RESOURCE_NOT_FOUND', 'Resource not found.'));
       }
       return reply.send(modeEnvelope(request.server.earthAuthMode, result));
     } catch (error) {
@@ -144,11 +144,16 @@ function mapZodError(error: z.ZodError): { code: string; message: string } {
   return { code: 'VALIDATION_ERROR', message: issue?.message ?? 'invalid request body' };
 }
 
-function sendAuthError(request: FastifyRequest, reply: FastifyReply, error: unknown) {
+async function sendAuthError(
+  service: PrimeService,
+  request: FastifyRequest,
+  reply: FastifyReply,
+  error: unknown,
+  action: string,
+) {
   if (error instanceof AuthError) {
-    return reply
-      .status(error.status)
-      .send(modeError(request.server.earthAuthMode, error.code, error.message));
+    await service.recordAuthorizationDenial(request.earthTenant, action);
+    return reply.status(error.status).send(requestError(request, error.code, error.message));
   }
   return sendPrimeError(request, reply, error);
 }
@@ -156,12 +161,16 @@ function sendAuthError(request: FastifyRequest, reply: FastifyReply, error: unkn
 function sendPrimeError(request: FastifyRequest, reply: FastifyReply, error: unknown) {
   if (error instanceof PolicyError) {
     const status = error.code === 'INVALID_STATE_TRANSITION' ? 409 : 400;
-    return reply.status(status).send(modeError(request.server.earthAuthMode, error.code, error.message));
+    return reply.status(status).send(requestError(request, error.code, error.message));
   }
   requestLog(error);
   return reply.status(500).send(
-    modeError(request.server.earthAuthMode, 'INTERNAL_ERROR', 'unexpected server error'),
+    requestError(request, 'INTERNAL_ERROR', 'unexpected server error'),
   );
+}
+
+function requestError(request: FastifyRequest, code: string, message: string) {
+  return modeError(request.server.earthAuthMode, code, message, { correlationId: request.id });
 }
 
 function requestLog(error: unknown): void {

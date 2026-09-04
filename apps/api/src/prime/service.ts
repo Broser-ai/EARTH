@@ -261,6 +261,22 @@ export class PrimeService {
     }
   }
 
+  async recordAuthorizationDenial(tenant: TenantContext, action: string): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await insertAuditEvent(client, {
+        organizationId: tenant.organizationId,
+        ...auditContext(tenant),
+        actorType: 'USER',
+        actorId: tenant.actorId,
+        eventType: 'AUTHORIZATION_DENIED',
+        metadata: { action },
+      });
+    } finally {
+      client.release();
+    }
+  }
+
   async listAuditEvents(tenant: TenantContext, sessionId: string): Promise<
     Array<{
       id: string;
