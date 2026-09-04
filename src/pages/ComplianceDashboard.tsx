@@ -2,11 +2,14 @@ import { useState } from 'react';
 import clsx from 'clsx';
 import { Shield, FileText, Leaf, TreePine, Factory, AlertTriangle, Clock, CheckCircle2, ExternalLink, Link2 } from 'lucide-react';
 
+import TruthBadge from '../components/TruthBadge';
+import { DEMO_COMPLIANCE } from '../demo/canonical';
+
 const FRAMEWORKS = [
-  { name: 'CSRD', fullName: 'Corporate Sustainability Reporting Directive', pct: 94, done: 62, total: 66, color: '#34D399', updated: 'Jul 28, 2026' },
-  { name: 'GRI', fullName: 'Global Reporting Initiative', pct: 88, done: 84, total: 96, color: '#34D399', updated: 'Jul 25, 2026' },
-  { name: 'EUDR', fullName: 'EU Deforestation Regulation', pct: 67, done: 987, total: 1455, color: '#F59E0B', updated: 'Jul 30, 2026' },
-  { name: 'CBAM', fullName: 'Carbon Border Adjustment Mechanism', pct: 52, done: 24, total: 46, color: '#EF4444', updated: 'Jul 22, 2026' },
+  { name: 'CSRD', fullName: 'Corporate Sustainability Reporting Directive', pct: DEMO_COMPLIANCE.csrdPct, done: 62, total: 66, color: '#34D399', updated: 'Jul 28, 2026' },
+  { name: 'GRI', fullName: 'Global Reporting Initiative', pct: DEMO_COMPLIANCE.griPct, done: 84, total: 96, color: '#34D399', updated: 'Jul 25, 2026' },
+  { name: 'EUDR', fullName: 'EU Deforestation Regulation', pct: DEMO_COMPLIANCE.eudrPct, done: 987, total: 1455, color: '#F59E0B', updated: 'Jul 30, 2026' },
+  { name: 'CBAM', fullName: 'Carbon Border Adjustment Mechanism', pct: DEMO_COMPLIANCE.cbamPct, done: 24, total: 46, color: '#EF4444', updated: 'Jul 22, 2026' },
 ];
 
 const DEADLINES = [
@@ -17,28 +20,28 @@ const DEADLINES = [
 ];
 
 const DISCLOSURES = [
-  { req: 'Climate change mitigation targets', framework: 'CSRD', category: 'E1', status: 'Complete', source: 'Auto', updated: 'Jul 28' },
-  { req: 'GHG emissions Scope 1', framework: 'CSRD', category: 'E1', status: 'Complete', source: 'Auto', updated: 'Jul 31' },
-  { req: 'GHG emissions Scope 2', framework: 'CSRD', category: 'E1', status: 'Complete', source: 'Auto', updated: 'Jul 31' },
-  { req: 'GHG emissions Scope 3', framework: 'CSRD', category: 'E1', status: 'In progress', source: 'Manual', updated: 'Jul 25' },
-  { req: 'Energy consumption', framework: 'GRI', category: 'GRI 302', status: 'Complete', source: 'Auto', updated: 'Jul 30' },
-  { req: 'Water withdrawal', framework: 'GRI', category: 'GRI 303', status: 'In progress', source: 'Manual', updated: 'Jul 20' },
-  { req: 'Waste generation', framework: 'GRI', category: 'GRI 306', status: 'Complete', source: 'Auto', updated: 'Jul 31' },
-  { req: 'Timber product traceability', framework: 'EUDR', category: 'Forest', status: 'In progress', source: 'Pending', updated: 'Jul 28' },
-  { req: 'Palm oil supply chain mapping', framework: 'EUDR', category: 'Agriculture', status: 'Not started', source: 'Pending', updated: '—' },
-  { req: 'Rubber supplier geolocation', framework: 'EUDR', category: 'Forest', status: 'In progress', source: 'Manual', updated: 'Jul 15' },
-  { req: 'Steel embedded emissions', framework: 'CBAM', category: 'Metals', status: 'In progress', source: 'Manual', updated: 'Jul 22' },
-  { req: 'Aluminium carbon intensity', framework: 'CBAM', category: 'Metals', status: 'Not started', source: 'Pending', updated: '—' },
-  { req: 'Cement carbon factor', framework: 'CBAM', category: 'Minerals', status: 'Overdue', source: 'Pending', updated: '—' },
-  { req: 'Biodiversity impact assessment', framework: 'CSRD', category: 'E4', status: 'In progress', source: 'Manual', updated: 'Jul 18' },
-  { req: 'Circular economy strategy', framework: 'CSRD', category: 'E5', status: 'Complete', source: 'Auto', updated: 'Jul 29' },
+  { req: 'Climate change mitigation targets', framework: 'CSRD', category: 'E1', status: 'Complete', source: 'DEMO', updated: 'Jul 28' },
+  { req: 'GHG emissions Scope 1', framework: 'CSRD', category: 'E1', status: 'Complete', source: 'DEMO', updated: 'Jul 31' },
+  { req: 'GHG emissions Scope 2', framework: 'CSRD', category: 'E1', status: 'Complete', source: 'DEMO', updated: 'Jul 31' },
+  { req: 'GHG emissions Scope 3', framework: 'CSRD', category: 'E1', status: 'In progress', source: 'DEMO', updated: 'Jul 25' },
+  { req: 'Energy consumption', framework: 'GRI', category: 'GRI 302', status: 'Complete', source: 'DEMO', updated: 'Jul 30' },
+  { req: 'Water withdrawal', framework: 'GRI', category: 'GRI 303', status: 'In progress', source: 'DEMO', updated: 'Jul 20' },
+  { req: 'Waste generation', framework: 'GRI', category: 'GRI 306', status: 'Complete', source: 'DEMO', updated: 'Jul 31' },
+  { req: 'Timber product traceability', framework: 'EUDR', category: 'Forest', status: 'In progress', source: 'DEMO', updated: 'Jul 28' },
+  { req: 'Palm oil supply chain mapping', framework: 'EUDR', category: 'Agriculture', status: 'Not started', source: 'DEMO', updated: '—' },
+  { req: 'Rubber supplier geolocation', framework: 'EUDR', category: 'Forest', status: 'In progress', source: 'DEMO', updated: 'Jul 15' },
+  { req: 'Steel embedded emissions', framework: 'CBAM', category: 'Metals', status: 'In progress', source: 'DEMO', updated: 'Jul 22' },
+  { req: 'Aluminium carbon intensity', framework: 'CBAM', category: 'Metals', status: 'Not started', source: 'DEMO', updated: '—' },
+  { req: 'Cement carbon factor', framework: 'CBAM', category: 'Minerals', status: 'Overdue', source: 'DEMO', updated: '—' },
+  { req: 'Biodiversity impact assessment', framework: 'CSRD', category: 'E4', status: 'In progress', source: 'DEMO', updated: 'Jul 18' },
+  { req: 'Circular economy strategy', framework: 'CSRD', category: 'E5', status: 'Complete', source: 'DEMO', updated: 'Jul 29' },
 ];
 
 const DATA_SOURCES = [
-  { name: 'SAP S/4HANA', status: 'connected', records: '847 records synced' },
-  { name: 'Carbon accounting module', status: 'connected', records: 'Real-time' },
-  { name: 'Waste operations', status: 'connected', records: 'Hourly sync' },
-  { name: 'Supplier portal', status: 'partial', records: '67% coverage' },
+  { name: 'SAP S/4HANA', status: 'demo', records: 'DEMO — not connected' },
+  { name: 'Carbon accounting module', status: 'demo', records: 'DEMO fixtures, not real-time' },
+  { name: 'Waste operations', status: 'demo', records: 'DEMO — no hourly sync' },
+  { name: 'Supplier portal', status: 'demo', records: 'DEMO — no coverage' },
   { name: 'Product registry', status: 'disconnected', records: 'Not connected' },
 ];
 
@@ -71,7 +74,7 @@ export default function ComplianceDashboard() {
     <div className="space-y-4">
       <div>
         <h1 className="text-base font-medium text-[#E2E8F0]">Compliance</h1>
-        <p className="text-[11px] text-[#94A3B8]">Multi-framework compliance management</p>
+        <p className="text-[11px] text-[#94A3B8]">DEMO multi-framework layout — not a live compliance system</p>
       </div>
 
       <div className="grid grid-cols-4 gap-3">
@@ -79,7 +82,10 @@ export default function ComplianceDashboard() {
           <div key={f.name} className="rounded-lg border border-white/[0.06] bg-white/[0.03] p-3">
             <div className="flex items-center justify-between mb-1">
               <span className={clsx('px-2 py-0.5 rounded-full text-[9px] font-semibold', frameworkBadge[f.name])}>{f.name}</span>
-              <span className="font-mono text-lg font-bold" style={{ color: f.color }}>{f.pct}%</span>
+              <span className="flex items-center gap-1.5">
+                <TruthBadge kind="DEMO" className="px-1 py-0 text-[8px]" />
+                <span className="font-mono text-lg font-bold" style={{ color: f.color }}>{f.pct}%</span>
+              </span>
             </div>
             <p className="text-[9px] text-[#64748B] mb-2">{f.fullName}</p>
             <div className="h-1.5 rounded-full bg-white/[0.06] mb-1">
@@ -149,7 +155,7 @@ export default function ComplianceDashboard() {
             {DATA_SOURCES.map(d => (
               <div key={d.name}>
                 <div className="flex items-center gap-1.5">
-                  <div className={clsx('h-1.5 w-1.5 rounded-full', d.status === 'connected' ? 'bg-[#34D399]' : d.status === 'partial' ? 'bg-[#F59E0B]' : 'bg-[#EF4444]')} />
+                  <div className={clsx('h-1.5 w-1.5 rounded-full', d.status === 'disconnected' ? 'bg-[#EF4444]' : 'bg-[#F59E0B]')} />
                   <span className="text-[10px] text-[#E2E8F0]">{d.name}</span>
                 </div>
                 <p className="text-[8px] text-[#64748B] ml-3">{d.records}</p>

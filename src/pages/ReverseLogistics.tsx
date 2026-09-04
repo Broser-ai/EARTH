@@ -62,7 +62,7 @@ const ACTIVITY = [
   { time: '14:27:01', msg: 'Lot Builder: Timber lot AUC-045 reached 500kg threshold', type: 'info' },
   { time: '14:25:44', msg: 'OEM Credit: €198.00 issued to DeWalt (11 items)', type: 'success' },
   { time: '14:24:18', msg: 'Sealed Bid: New bid received on AUC-046 (total: 7)', type: 'info' },
-  { time: '14:22:55', msg: 'ERP Sync: SAP manifest sent for 42 items', type: 'success' },
+  { time: '14:22:55', msg: 'DEMO: SAP manifest would be sent here — ERP not connected', type: 'warn' },
   { time: '14:21:30', msg: 'Grading: 3 items downgraded to D (no OEM credit)', type: 'warn' },
   { time: '14:20:07', msg: 'Intake: 18 items scanned at Munich warehouse', type: 'info' },
   { time: '14:18:42', msg: 'Auto-replacement: 12 orders triggered from take-back credits', type: 'success' },
@@ -73,9 +73,9 @@ const ACTIVITY = [
 ];
 
 const ERP_SYNC = [
-  { name: 'SAP S/4HANA', status: 'synced', lastSync: '2 min ago' },
-  { name: 'Oracle NetSuite', status: 'synced', lastSync: '5 min ago' },
-  { name: 'DATEV', status: 'pending', lastSync: '47 min ago' },
+  { name: 'SAP S/4HANA', status: 'demo', lastSync: 'not connected' },
+  { name: 'Oracle NetSuite', status: 'demo', lastSync: 'not connected' },
+  { name: 'DATEV', status: 'demo', lastSync: 'not connected' },
 ];
 
 const conditionColor: Record<string, string> = {
@@ -303,12 +303,12 @@ export default function ReverseLogistics() {
 
       <div className="flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.03] px-4 py-2">
         <Link2 size={12} className="text-[#64748B]" />
-        <span className="text-[9px] font-mono uppercase tracking-wider text-[#64748B]">ERP Sync</span>
+        <span className="text-[9px] font-mono uppercase tracking-wider text-[#64748B]">ERP Sync (DEMO)</span>
         {ERP_SYNC.map(e => (
           <div key={e.name} className="flex items-center gap-1.5 ml-2">
             <div className={clsx('h-1.5 w-1.5 rounded-full', e.status === 'synced' ? 'bg-[#34D399]' : 'bg-[#F59E0B]')} />
             <span className="text-[9px] text-[#94A3B8]">{e.name}</span>
-            <span className="font-mono text-[8px] text-[#64748B]">{e.lastSync}</span>
+            <span className="font-mono text-[8px] text-[#F59E0B]">{e.lastSync}</span>
           </div>
         ))}
       </div>

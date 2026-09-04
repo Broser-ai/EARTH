@@ -616,7 +616,7 @@ function MissingCertAlerts() {
     <Card>
       <SectionLabel icon={ShieldAlert} title="Certification Alerts" accent="#EF4444" />
       {flagged.length === 0 ? (
-        <p className="text-[11px] text-[#475569]">All recyclers fully certified.</p>
+        <p className="text-[11px] text-[#475569]">DEMO — recycler ISO/EfbV badges are scenario labels, not verified certificates.</p>
       ) : (
         <div className="space-y-2.5">
           {flagged.map((r) => (

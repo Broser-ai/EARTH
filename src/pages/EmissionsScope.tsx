@@ -12,6 +12,8 @@ import {
   HelpCircle,
 } from 'lucide-react';
 
+import { GHG_SPINE, GHG_SCOPE_SHARE, GHG_TOTAL } from '../demo/canonical';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -39,17 +41,16 @@ interface Scope3Row {
 }
 
 // ---------------------------------------------------------------------------
-// Data — internally reconciled so every subtotal ties out to the headline
-// scope totals (accounting-grade: no orphaned rounding).
+// Data — subtotals are wired to GHG_SPINE. Figures are DEMO / ESTIMATED / INPUT_UNVERIFIED.
 // ---------------------------------------------------------------------------
 
 const SCOPE_TOTALS = {
-  scope1: { value: 2140, pct: 14.4, color: '#EF4444', label: 'Direct emissions' },
-  scope2: { value: 4210, pct: 28.3, color: '#F59E0B', label: 'Energy indirect' },
-  scope3: { value: 8497, pct: 57.2, color: '#60A5FA', label: 'Value chain' },
+  scope1: { value: GHG_SPINE.scope1, pct: GHG_SCOPE_SHARE.scope1Pct, color: '#EF4444', label: 'Direct emissions' },
+  scope2: { value: GHG_SPINE.scope2, pct: GHG_SCOPE_SHARE.scope2Pct, color: '#F59E0B', label: 'Energy indirect' },
+  scope3: { value: GHG_SPINE.scope3, pct: GHG_SCOPE_SHARE.scope3Pct, color: '#60A5FA', label: 'Value chain' },
 };
 
-const GRAND_TOTAL = SCOPE_TOTALS.scope1.value + SCOPE_TOTALS.scope2.value + SCOPE_TOTALS.scope3.value;
+const GRAND_TOTAL = GHG_TOTAL;
 
 const SCOPE1_ROWS: Scope1Row[] = [
   {
@@ -230,12 +231,12 @@ export default function EmissionsScope() {
             SCOPE 1 / 2 / 3 BREAKDOWN
           </h1>
           <p className="mt-1 text-xs text-[#94A3B8]">
-            Emission sources, calculation methods and data quality — GHG Protocol Corporate Standard
+            ESTIMATED / INPUT_UNVERIFIED DEMO inventory — GHG Protocol layout only, not a verified disclosure
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-4 py-2 backdrop-blur">
           <Gauge className="h-3.5 w-3.5 text-[#60A5FA]" />
-          <span className="font-mono text-[11px] text-[#94A3B8]">Total inventory</span>
+          <span className="font-mono text-[11px] text-[#94A3B8]">DEMO total</span>
           <span className="font-mono text-sm font-bold text-[#F1F5F9]">{fmt(GRAND_TOTAL)} tCO2e</span>
         </div>
       </div>

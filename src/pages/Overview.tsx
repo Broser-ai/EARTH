@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import clsx from 'clsx';
-import { ArrowUpRight, ArrowDownRight, AlertTriangle, Truck, CheckCircle2, Clock, Package, Leaf, Shield } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, AlertTriangle } from 'lucide-react';
+import TruthBadge from '../components/TruthBadge';
+import { DEMO_COMPLIANCE, DEMO_TENANT } from '../demo/canonical';
 
 const KPIS = [
   { label: 'CO₂ Saved', value: '2,847', unit: 't', delta: '+12.3%', positive: true },
@@ -21,10 +23,10 @@ const ORDERS = [
 ];
 
 const COMPLIANCE = [
-  { name: 'CSRD', pct: 94, color: '#34D399' },
-  { name: 'GRI', pct: 88, color: '#34D399' },
-  { name: 'EUDR', pct: 67, color: '#F59E0B' },
-  { name: 'CBAM', pct: 52, color: '#EF4444' },
+  { name: 'CSRD', pct: DEMO_COMPLIANCE.csrdPct, color: '#34D399' },
+  { name: 'GRI', pct: DEMO_COMPLIANCE.griPct, color: '#34D399' },
+  { name: 'EUDR', pct: DEMO_COMPLIANCE.eudrPct, color: '#F59E0B' },
+  { name: 'CBAM', pct: DEMO_COMPLIANCE.cbamPct, color: '#EF4444' },
 ];
 
 const RECYCLERS = [
@@ -55,7 +57,9 @@ export default function Overview() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-base font-medium text-[#E2E8F0]">Dashboard</h1>
-          <p className="text-[11px] text-[#94A3B8]">Hornbach Germany · 847 locations · Enterprise</p>
+          <p className="text-[11px] text-[#94A3B8]">
+            {DEMO_TENANT.name} · DEMO scenario · not a live tenant
+          </p>
         </div>
         <div className="flex gap-1 rounded-lg border border-white/[0.06] bg-white/[0.03] p-0.5">
           {['week', 'month', 'quarter', 'year'].map(r => (
@@ -67,7 +71,10 @@ export default function Overview() {
       <div className="grid grid-cols-5 gap-3">
         {KPIS.map(k => (
           <div key={k.label} className="rounded-lg border border-white/[0.06] bg-white/[0.03] p-3">
-            <p className="text-[9px] font-mono uppercase tracking-wider text-[#64748B]">{k.label}</p>
+            <p className="text-[9px] font-mono uppercase tracking-wider text-[#64748B] flex items-center gap-1">
+              {k.label}
+              <TruthBadge kind="DEMO" className="px-1 py-0 text-[8px]" />
+            </p>
             <p className="mt-1 text-lg font-mono font-bold text-[#E2E8F0]">{k.value}<span className="text-[11px] text-[#94A3B8]">{k.unit}</span></p>
             <p className={clsx('mt-0.5 text-[9px] font-mono flex items-center gap-0.5', k.positive ? 'text-[#34D399]' : 'text-[#EF4444]')}>
               {k.positive ? <ArrowUpRight size={10} /> : k.label === 'Open Pickups' ? <AlertTriangle size={10} /> : <ArrowUpRight size={10} />}
@@ -113,7 +120,11 @@ export default function Overview() {
 
         <div className="space-y-3">
           <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] p-3">
-            <h3 className="text-[9px] font-mono uppercase tracking-wider text-[#64748B] mb-2">Compliance</h3>
+            <h3 className="text-[9px] font-mono uppercase tracking-wider text-[#64748B] mb-2 flex items-center gap-1.5">
+              Compliance
+              <TruthBadge kind="DEMO" className="px-1 py-0 text-[8px]" />
+            </h3>
+            <p className="text-[8px] text-[#64748B] mb-2">{DEMO_COMPLIANCE.note}</p>
             <div className="space-y-2">
               {COMPLIANCE.map(c => (
                 <div key={c.name}>

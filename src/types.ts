@@ -1,6 +1,6 @@
 // ============================================================================
-// EARTH — Commercial SaaS Platform
-// Central type definitions + demo mock data
+// EARTH — DEVELOPMENT / DEMO types + mock data
+// Not a live commercial SaaS. See docs/FRONTEND_TRUTH.md.
 // ============================================================================
 
 // ----------------------------------------------------------------------------
@@ -226,18 +226,23 @@ export const MOCK_PICKUP_ORDERS: PickupOrder[] = [
 ];
 
 export const MOCK_COMPLIANCE_FRAMEWORKS: ComplianceFramework[] = [
-  { name: 'EU CSRD', score: 78, deadline: '2026-12-31', missingItems: ['Scope 3 supplier data', 'Double materiality assessment sign-off'] },
-  { name: 'WEEE Directive', score: 92, deadline: '2026-09-30', missingItems: ['Q3 take-back tonnage report'] },
-  { name: 'EU Battery Regulation', score: 64, deadline: '2027-02-18', missingItems: ['Carbon footprint declaration', 'Due diligence policy', 'Recycled content certificate'] },
-  { name: 'EPR Packaging (VerpackG)', score: 88, deadline: '2026-10-01', missingItems: ['LUCID registration update'] },
-  { name: 'ISO 14001', score: 95, deadline: '2027-05-01', missingItems: [] },
-  { name: 'German Supply Chain Act (LkSG)', score: 71, deadline: '2026-11-15', missingItems: ['Tier-2 supplier risk mapping', 'Grievance mechanism audit'] },
+  { name: 'EU CSRD (DEMO)', score: 94, deadline: '2026-12-31', missingItems: ['Not a filed disclosure', 'No double materiality sign-off'] },
+  { name: 'WEEE Directive (DEMO)', score: 92, deadline: '2026-09-30', missingItems: ['Q3 take-back tonnage report'] },
+  { name: 'EU Battery Regulation (DEMO)', score: 64, deadline: '2027-02-18', missingItems: ['Carbon footprint declaration', 'Due diligence policy', 'Recycled content certificate'] },
+  { name: 'EPR Packaging (VerpackG) (DEMO)', score: 88, deadline: '2026-10-01', missingItems: ['LUCID registration update'] },
+  { name: 'ISO 14001 (DEMO — not certified)', score: 0, deadline: '2027-05-01', missingItems: ['No certificate in this SPA'] },
+  { name: 'German Supply Chain Act (LkSG) (DEMO)', score: 71, deadline: '2026-11-15', missingItems: ['Tier-2 supplier risk mapping', 'Grievance mechanism audit'] },
 ];
 
 export const MOCK_EMISSIONS_DATA: EmissionsData[] = [
-  { scope1: 1240, scope2: 3860, scope3: 18420, total: 23520, period: 'Q1 2026', unit: 'tCO2e' },
-  { scope1: 1180, scope2: 3610, scope3: 17950, total: 22740, period: 'Q2 2026', unit: 'tCO2e' },
-  { scope1: 1095, scope2: 3340, scope3: 17280, total: 21715, period: 'Q3 2026 (proj.)', unit: 'tCO2e' },
+  {
+    scope1: 2140,
+    scope2: 4210,
+    scope3: 8497,
+    total: 14847,
+    period: 'H1 2026 (DEMO, ESTIMATED)',
+    unit: 'tCO2e',
+  },
 ];
 
 export const MOCK_TAKEBACK_PROGRAMS: TakeBackProgram[] = [
