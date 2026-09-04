@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+
+# builds & caches
+dist/
+dist-ssr/
+.vite/
+.turbo/
+*.local
+
+# tests
+coverage/
+.vitest/
+
+# environment (keep committed examples)
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# typescript
+tsc_out
+tsc_out.txt
+*.tsbuildinfo
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

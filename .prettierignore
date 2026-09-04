@@ -1,0 +1,21 @@
+# Generated / vendor
+node_modules
+dist
+coverage
+.vite
+package-lock.json
+tsc_out.txt
+tsc_out
+*.tsbuildinfo
+.env
+.env.*
+
+# Do not mass-reformat the existing SPA or product docs in this baseline.
+src
+apps
+ARCHITECTURE-REVERSE-LOGISTICS.md
+CLAUDE.md
+README.md
+index.html
+vite.config.ts
+tsconfig.json
