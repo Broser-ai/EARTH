@@ -32,7 +32,7 @@ All three specialists may run in parallel (no dependencies).
 | Item | Value |
 |------|--------|
 | Branch | `integration/earth-foundation-v0` |
-| Tip at last PRIME commit | *(filled at commit time)* |
+| Tip at last PRIME commit | `770d120a96ca5a8cecbc61e2ed7fc12d59a196ef` (five coordination docs) |
 | Merged specialist branches | none |
 | Post-merge gate | not run (nothing merged) |
 | Merge to `main` | **forbidden** in this swarm |
