@@ -1,6 +1,7 @@
 import clsx from 'clsx';
+import { assertNever, type HonestyLabel } from '../contracts';
 
-export type TruthKind = 'DEVELOPMENT' | 'DEMO' | 'ESTIMATED' | 'INPUT_UNVERIFIED';
+export type TruthKind = HonestyLabel | 'DEVELOPMENT';
 
 interface TruthBadgeProps {
   kind: TruthKind;
@@ -17,10 +18,12 @@ function classesFor(kind: TruthKind): string {
       return 'border-amber/30 text-amber';
     case 'INPUT_UNVERIFIED':
       return 'border-white/15 text-text-secondary';
-    default: {
-      const _exhaustive: never = kind;
-      return _exhaustive;
-    }
+    case 'NOT_CONFIGURED':
+      return 'border-amber/40 text-amber';
+    case 'NOT_CONNECTED':
+      return 'border-amber/40 text-amber';
+    default:
+      return assertNever(kind);
   }
 }
 

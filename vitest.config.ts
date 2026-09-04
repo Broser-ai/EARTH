@@ -10,6 +10,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(rootDir, 'src'),
+      '@earth/contracts': resolve(rootDir, 'packages/earth-contracts/src/index.ts'),
     },
   },
   test: {

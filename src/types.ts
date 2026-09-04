@@ -3,6 +3,34 @@
 // Not a live commercial SaaS. See docs/FRONTEND_TRUTH.md.
 // ============================================================================
 
+export {
+  ACTOR_TYPES,
+  DATA_CLASSIFICATIONS,
+  DEVELOPMENT_MODE,
+  HONESTY_LABELS,
+  NEXT_ACTIONS,
+  POLICY_VERSION,
+  REASON_CODES,
+  REQUIRED_PROMPT_STRINGS,
+  SESSION_STATES,
+  TASK_STATES,
+  TASK_TYPES,
+  TERMINAL_SESSION_STATES,
+  USER_ROLES,
+  WORKFLOW_TYPE,
+  WORKFLOW_VERSION,
+  type ActorType,
+  type DataClassification,
+  type DevelopmentMode,
+  type HonestyLabel,
+  type NextRecommendedAction,
+  type ReasonCode,
+  type SessionState,
+  type TaskState,
+  type TaskType,
+  type UserRole,
+} from './contracts';
+
 // ----------------------------------------------------------------------------
 // 1. NAVIGATION TYPES
 // ----------------------------------------------------------------------------

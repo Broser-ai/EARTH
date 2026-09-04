@@ -1,112 +1,40 @@
-export const POLICY_VERSION = 'prime-v0.1';
-export const WORKFLOW_TYPE = 'MATERIAL_OPPORTUNITY_INTAKE';
-export const WORKFLOW_VERSION = '0.1';
+import type {
+  ActorType,
+  PolicyBudget,
+  ReasonCode,
+  SessionState,
+  TaskState,
+  TaskType,
+  UserRole,
+} from '../contracts.js';
 
-export const USER_ROLES = [
-  'OWNER',
-  'ESG_LEAD',
-  'OPERATIONS',
-  'REVIEWER',
-  'VIEWER',
-] as const;
-export type UserRole = (typeof USER_ROLES)[number];
-
-export const SESSION_STATES = [
-  'QUEUED',
-  'RUNNING',
-  'WAITING_FOR_DEPENDENCY',
-  'WAITING_FOR_APPROVAL',
-  'COMPLETED',
-  'FAILED',
-  'CANCELLED',
-  'BUDGET_STOPPED',
-  'EXPIRED',
-] as const;
-export type SessionState = (typeof SESSION_STATES)[number];
-
-export const TASK_TYPES = [
-  'VALIDATE_BATCH',
-  'CHECK_EVIDENCE',
-  'CALCULATE_BASELINE',
-  'FIND_CANDIDATE_ROUTES',
-  'NANOCHAT_EXTRACT',
-] as const;
-export type TaskType = (typeof TASK_TYPES)[number];
-
-export const TASK_STATES = [
-  'QUEUED',
-  'RUNNING',
-  'COMPLETED',
-  'PARTIAL',
-  'ABSTAINED',
-  'FAILED',
-  'BLOCKED',
-  'NOT_CONFIGURED',
-  'CANCELLED',
-] as const;
-export type TaskState = (typeof TASK_STATES)[number];
-
-export const DATA_CLASSIFICATIONS = ['INTERNAL', 'CONFIDENTIAL', 'RESTRICTED'] as const;
-export type DataClassification = (typeof DATA_CLASSIFICATIONS)[number];
-
-export const ACTOR_TYPES = ['USER', 'SYSTEM', 'WORKER'] as const;
-export type ActorType = (typeof ACTOR_TYPES)[number];
-
-export const REASON_CODES = [
-  'INVALID_QUANTITY',
-  'MATERIAL_CLASS_REQUIRED',
-  'EVIDENCE_MISSING',
-  'NANOCHAT_RESTRICTED_DATA_BLOCK',
-  'NANOCHAT_NOT_CONFIGURED',
-  'BUDGET_EXCEEDED',
-  'INVALID_STATE_TRANSITION',
-  'TASK_RETRY_EXHAUSTED',
-  'RECYCLER_NETWORK_NOT_CONNECTED',
-] as const;
-export type ReasonCode = (typeof REASON_CODES)[number];
-
-export const NEXT_ACTIONS = [
-  'UPLOAD_EVIDENCE',
-  'RUN_NEXT',
-  'NONE',
-] as const;
-export type NextRecommendedAction = (typeof NEXT_ACTIONS)[number];
-
-export interface PolicyBudget {
-  maxTasks: number;
-  maxParallelTasks: number;
-  maxLlmCalls: number;
-  maxInputTokens: number;
-  maxOutputTokens: number;
-  maxEstimatedCostDkk: number;
-  maxEstimatedGco2e: number;
-}
-
-export interface MaterialBatchInput {
-  externalReference?: string | null;
-  materialClass: string;
-  quantityKg: number;
-  facilityName?: string | null;
-  availableFrom?: string | null;
-}
-
-export interface BaselineInput {
-  disposalCostDkk: number;
-  co2eKg: number;
-}
-
-export interface EvidenceInput {
-  documentIds: string[];
-  extractionRequested: boolean;
-}
-
-export interface StartOpportunityInput {
-  idempotencyKey: string;
-  materialBatch: MaterialBatchInput;
-  baseline: BaselineInput;
-  evidence: EvidenceInput;
-  dataClassification: DataClassification;
-}
+export {
+  ACTOR_TYPES,
+  DATA_CLASSIFICATIONS,
+  NEXT_ACTIONS,
+  POLICY_VERSION,
+  REASON_CODES,
+  SESSION_STATES,
+  TASK_STATES,
+  TASK_TYPES,
+  USER_ROLES,
+  WORKFLOW_TYPE,
+  WORKFLOW_VERSION,
+  assertNever,
+  type ActorType,
+  type BaselineInput,
+  type DataClassification,
+  type EvidenceInput,
+  type MaterialBatchInput,
+  type NextRecommendedAction,
+  type PolicyBudget,
+  type ReasonCode,
+  type SessionState,
+  type StartOpportunityInput,
+  type TaskState,
+  type TaskType,
+  type UserRole,
+} from '../contracts.js';
 
 export interface PlannedTask {
   taskType: TaskType;
@@ -187,8 +115,4 @@ export class PolicyError extends Error {
     this.name = 'PolicyError';
     this.code = code;
   }
-}
-
-export function assertNever(value: never): never {
-  throw new Error(`Unhandled union member: ${JSON.stringify(value)}`);
 }
