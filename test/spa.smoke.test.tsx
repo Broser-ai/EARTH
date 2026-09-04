@@ -5,12 +5,13 @@ import CommandBar from '../src/components/CommandBar';
 import StatusBadge from '../src/components/StatusBadge';
 
 describe('EARTH SPA smoke', () => {
-  it('renders the command bar brand and development marker', () => {
+  it('renders the command bar brand and overview navigation', () => {
     render(<App />);
 
     expect(screen.getByText('EARTH')).toBeInTheDocument();
-    expect(screen.getByText('DEVELOPMENT')).toBeInTheDocument();
+    expect(screen.getByText('Hornbach Germany')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'OVERVIEW' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dashboard' })).toBeInTheDocument();
   });
 
   it('renders CommandBar navigation labels', () => {

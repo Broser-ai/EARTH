@@ -55,7 +55,7 @@ DevDependencies added: `eslint`, `typescript-eslint`, `@eslint/js`, `eslint-plug
 
 ## Smoke coverage
 
-`test/spa.smoke.test.tsx` mounts the existing SPA `App` and checks that the command bar brand (`EARTH`), the `DEVELOPMENT` marker, and overview navigation render. It also mounts `CommandBar` and `StatusBadge` in isolation.
+`test/spa.smoke.test.tsx` mounts the existing SPA `App` and checks that the command bar brand (`EARTH`), tenant label, and overview navigation render. It also mounts `CommandBar` and `StatusBadge` in isolation.
 
 ## Out of scope
 
