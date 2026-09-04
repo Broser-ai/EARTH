@@ -1,6 +1,6 @@
-export const DEVELOPMENT_MODE = 'DEVELOPMENT_ONLY' as const;
+import { DEVELOPMENT_MODE, type DevelopmentMode } from './contracts.js';
 
-export type DevelopmentMode = typeof DEVELOPMENT_MODE;
+export { DEVELOPMENT_MODE, type DevelopmentMode };
 
 export function developmentEnvelope<T extends object>(
   body: T,

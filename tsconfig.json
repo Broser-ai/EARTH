@@ -14,10 +14,11 @@
     "isolatedModules": true,
     "allowImportingTsExtensions": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@earth/contracts": ["./packages/earth-contracts/src/index.ts"]
     },
     "baseUrl": "."
   },
-  "include": ["src"],
+  "include": ["src", "packages/earth-contracts/src"],
   "exclude": ["node_modules", "dist"]
 }

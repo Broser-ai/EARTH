@@ -1,0 +1,10 @@
+{
+  "name": "@earth/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared EARTH TypeScript contracts. DEVELOPMENT_ONLY — not a live control plane.",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

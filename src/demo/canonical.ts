@@ -7,7 +7,10 @@ export const DEMO_TENANT = {
   note: 'DEMO tenant — fictional scenario, not a live customer environment',
 } as const;
 
-export type HonestyLabel = 'DEMO' | 'ESTIMATED' | 'INPUT_UNVERIFIED';
+import type { HonestyLabel as SharedHonestyLabel } from '../contracts';
+
+/** GHG DEMO fixtures use this subset of the shared honesty labels. */
+export type HonestyLabel = Extract<SharedHonestyLabel, 'DEMO' | 'ESTIMATED' | 'INPUT_UNVERIFIED'>;
 
 export type GhgScopeName = 'Scope 1' | 'Scope 2' | 'Scope 3';
 
