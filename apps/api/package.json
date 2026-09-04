@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "NODE_ENV=development EARTH_AUTH_MODE=development tsx watch src/index.ts",
     "build": "tsc --noEmit && tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
@@ -12,8 +12,10 @@
     "migrate": "tsx src/migrate.ts"
   },
   "dependencies": {
+    "@fastify/rate-limit": "^11.2.0",
     "dotenv": "^16.5.0",
     "fastify": "^5.3.3",
+    "jose": "^6.2.11",
     "pg": "^8.16.0",
     "zod": "^3.25.0"
   },

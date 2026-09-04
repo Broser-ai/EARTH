@@ -36,10 +36,12 @@ export function registerAuthProvider(app: FastifyInstance, provider: AuthProvide
 
     try {
       const actor = await provider.getActor(request);
-      request.earthTenant = createTenantContext(actor);
+      request.earthTenant = createTenantContext(actor, request.id);
     } catch (error) {
       if (error instanceof AuthError) {
-        return reply.status(error.status).send(modeError(provider.authMode, error.code, error.message));
+        return reply.status(error.status).send(
+          modeError(provider.authMode, error.code, error.message, { correlationId: request.id }),
+        );
       }
       throw error;
     }

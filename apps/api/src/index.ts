@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { buildApp } from './app.js';
+import { loadAuthConfig } from './auth/config.js';
 import { loadConfig, requireDatabaseUrl } from './config.js';
 import { loadEnv } from './load-env.js';
 
@@ -8,7 +9,7 @@ loadEnv();
 async function main(): Promise<void> {
   const { host, port, databaseUrl } = loadConfig();
   const pool = new Pool({ connectionString: requireDatabaseUrl(databaseUrl) });
-  const app = await buildApp(pool);
+  const app = await buildApp(pool, loadAuthConfig());
 
   const shutdown = async (signal: string): Promise<void> => {
     app.log.info({ signal }, 'shutting down');

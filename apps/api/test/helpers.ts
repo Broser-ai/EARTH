@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { Pool } from 'pg';
 import { buildApp } from '../src/app.js';
+import { AUTH_MODE_DEVELOPMENT } from '../src/auth/types.js';
 import { loadEnv } from '../src/load-env.js';
 import { migrate } from '../src/migrate.js';
 
@@ -95,7 +96,7 @@ export async function resetWorkflowTables(pool: Pool): Promise<void> {
 }
 
 export async function createTestApp(pool: Pool): Promise<FastifyInstance> {
-  return buildApp(pool);
+  return buildApp(pool, { mode: AUTH_MODE_DEVELOPMENT });
 }
 
 export async function drainSession(
