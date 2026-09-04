@@ -1,0 +1,15 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "vitest.explorer",
+    "ms-azuretools.vscode-docker",
+    "ckolkman.vscode-postgres",
+    "humao.rest-client",
+    "eamodio.gitlens",
+    "usernamehw.errorlens",
+    "github.vscode-pull-request-github",
+    "sonarsource.sonarlint-vscode",
+    "redhat.vscode-yaml"
+  ]
+}

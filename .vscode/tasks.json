@@ -1,0 +1,113 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "EARTH: Install dependencies",
+      "type": "shell",
+      "command": "npm install && npm --prefix apps/api install",
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: Start PostgreSQL",
+      "type": "shell",
+      "command": "docker compose up -d",
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: Stop PostgreSQL",
+      "type": "shell",
+      "command": "docker compose down",
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: Database migrations",
+      "type": "shell",
+      "command": "npm run db:migrate",
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: Frontend dev",
+      "type": "shell",
+      "command": "npm run dev",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: API dev",
+      "type": "shell",
+      "command": "npm run api:dev",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: Typecheck SPA",
+      "type": "shell",
+      "command": "npm run typecheck",
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: Typecheck API",
+      "type": "shell",
+      "command": "npm run api:typecheck",
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: Lint",
+      "type": "shell",
+      "command": "npm run lint",
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: Format check",
+      "type": "shell",
+      "command": "npm run format:check",
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: Test SPA",
+      "type": "shell",
+      "command": "npm run test",
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: Test API",
+      "type": "shell",
+      "command": "npm run api:test",
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: Build SPA",
+      "type": "shell",
+      "command": "npm run build",
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: Build API",
+      "type": "shell",
+      "command": "npm run api:build",
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: npm audit",
+      "type": "shell",
+      "command": "npm audit",
+      "problemMatcher": []
+    },
+    {
+      "label": "EARTH: Full verification",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "EARTH: Typecheck SPA",
+        "EARTH: Typecheck API",
+        "EARTH: Lint",
+        "EARTH: Format check",
+        "EARTH: Test SPA",
+        "EARTH: Test API",
+        "EARTH: Build SPA",
+        "EARTH: Build API",
+        "EARTH: npm audit"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

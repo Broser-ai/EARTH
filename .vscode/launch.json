@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "EARTH: Debug API",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "api:dev"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "restart": true,
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "EARTH: Launch SPA in browser",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:5180",
+      "webRoot": "${workspaceFolder}/src"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "EARTH: Debug API + launch SPA",
+      "configurations": ["EARTH: Debug API", "EARTH: Launch SPA in browser"]
+    }
+  ]
+}
