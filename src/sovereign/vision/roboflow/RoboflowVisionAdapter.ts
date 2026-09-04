@@ -38,7 +38,7 @@ export class RoboflowVisionAdapter {
       type: 'vision.detected',
       source: 'vision.roboflow',
       message: observation.live
-        ? `live Roboflow ${observation.detections.length} detections`
+        ? `PROTOTYPE Roboflow ${observation.detections.length} detections (NOT VERIFIED)`
         : `stub Roboflow ${observation.detections.length} detections (not live)`,
       payload: {
         live: observation.live,
