@@ -50,11 +50,7 @@ export interface PolicyPlan {
   reasonCodes: ReasonCode[];
 }
 
-export interface Identity {
-  organizationId: string;
-  userId: string;
-  role: UserRole;
-}
+export type { AuthenticatedActor, TenantContext } from '../auth/types.js';
 
 export interface SessionBudgetView {
   maxTasks: number;

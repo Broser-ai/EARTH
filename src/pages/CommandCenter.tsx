@@ -88,7 +88,7 @@ export default function CommandCenter() {
       stats: [
         { label: 'Total tCO₂e', value: carbon.totalTCO2e.toLocaleString() },
         { label: 'Posts', value: String(carbon.posts.length) },
-        { label: 'CSRD', value: 'E1-6' },
+        { label: 'Status', value: 'DEMO' },
       ],
     },
   ];
@@ -99,7 +99,8 @@ export default function CommandCenter() {
         <div>
           <h1 className="font-mono text-lg font-bold tracking-widest">SOVEREIGN COMMAND CENTER</h1>
           <p className="mt-1 text-xs text-text-secondary">
-            Kernel HUD — LangGraph ticks, session-rl Prime, COMPASS, e-liability spine
+            In-tab prototype HUD — LangGraph ticks, session-rl Prime, COMPASS, DEMO e-liability spine
+            (INPUT_UNVERIFIED, synthetic, not a live ledger)
           </p>
         </div>
 
@@ -148,7 +149,7 @@ export default function CommandCenter() {
         />
         <StatTile label="Bus events" value={String(logs.length)} tone={logs.length > 0 ? 'accent' : 'muted'} />
         <StatTile
-          label="Spine tCO₂e"
+          label="Spine tCO₂e (DEMO)"
           value={carbon.totalTCO2e.toLocaleString()}
           tone="accent"
         />
@@ -205,7 +206,9 @@ export default function CommandCenter() {
         <div className="flex items-center gap-2 border-b border-white/5 px-4 py-2.5">
           <Terminal className="h-3.5 w-3.5 text-accent" />
           <span className="font-mono text-[11px] font-semibold tracking-wider">LIVE EVENT BUS</span>
-          <span className="ml-auto font-mono text-[10px] text-text-muted">{logs.length} events</span>
+          <span className="ml-auto font-mono text-[10px] text-text-muted">
+            {logs.length} events · in-tab simulation
+          </span>
         </div>
         <div className="h-56 overflow-y-auto px-4 py-3 font-mono text-[11px] leading-relaxed">
           {logs.length === 0 && (

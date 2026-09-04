@@ -25,6 +25,7 @@ const honestyBadge: Record<HonestyLabel, string> = {
 const methodBadge: Record<string, string> = {
   'Measured': 'bg-[#34D399]/10 text-[#34D399]',
   'Calculated': 'bg-[#60A5FA]/10 text-[#60A5FA]',
+  'Estimated': 'bg-[#F59E0B]/10 text-[#F59E0B]',
   'Location-based': 'bg-[#F59E0B]/10 text-[#F59E0B]',
   'Spend-based': 'bg-white/5 text-[#94A3B8]',
   'Distance-based': 'bg-white/5 text-[#94A3B8]',

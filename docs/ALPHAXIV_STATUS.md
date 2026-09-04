@@ -26,10 +26,10 @@ Cite this file + the SHA. Do not cite SPA KPIs, COMPASS scores, or “SHA-256 le
 | Layer | What it is | Port / bind | What it is not |
 |-------|------------|-------------|----------------|
 | Vite 6 + React 19 + TypeScript SPA (`src/`) | Command-bar mission grid, History URL router, `DEVELOPMENT` / `DEMO` badges. Tenant label: “Hornbach Germany” (fictional DEMO). | **5180** `0.0.0.0`, `strictPort`. Proxies `/v1` and `/health` → `:3001`. | Not a live ESG/ERP/audit product. No OIDC. |
-| Fastify API (`apps/api`, package `earth-api` 0.1.0) | `GET /health`, `GET /v1/info`, Material Opportunity Intake v0.1. Binds `0.0.0.0:$PORT`. | **3001** default | Not production. Identity = DEVELOPMENT headers, not auth. |
+| Fastify API (`apps/api`, package `earth-api` 0.1.0) | `GET /health`, `GET /v1/info`, Material Opportunity Intake v0.1. Binds `0.0.0.0:$PORT`. TenantContext + DEVELOPMENT `AuthProvider` (not OIDC). | **3001** default | Not production. Identity = DEVELOPMENT headers, not auth. |
 | PostgreSQL | Compose **only** `postgres:16-alpine` (db/user/password `earth`, **5432**). Migrations + DEVELOPMENT seed org/user. | 5432 | No Kafka, Redis, Neo4j, chain node. |
 | In-tab sovereign kernel (`src/sovereign/`) | `EarthRuntime` in the browser tab: EarthBus, CompassGate, H/S swarm, LangGraph web FSM, Prime + SessionRlPolicy, SHA-256 hash-chain, in-memory e-liability seed, adapter stubs. | Same tab as SPA | Lost on refresh. Not the Postgres control plane. Not hosted RL. |
-| Shared contracts (`packages/earth-contracts`) | Frozen literals: `DEVELOPMENT_ONLY`, honesty labels, intake enums. | — | Types/literals only. |
+| Shared contracts (`packages/earth-contracts`) | Frozen literals: `DEVELOPMENT_ONLY`, honesty labels, intake enums. Canonical DEMO GHG line items. | — | Types/literals + DEMO spine only. |
 
 **Two different things named PRIME — do not conflate:**
 
@@ -71,8 +71,8 @@ WarGame (`/mission/wargame`) runs scripted missions `mission-eudr-block` / `miss
 
 | Method | EARTH `main` |
 |--------|----------------|
-| Transferable carbon liability along a chain; **not** GHG Protocol; **not** a database product | **In-memory `ELiabilityGraph`**. Seed `seedHornbachSpine` posts 12 DEMO rows that **tonne-round** to **14,847 tCO₂e** (scope split **2,847 / 4,123 / 7,877**). Views: carbon / “CSRD E1-6” / audit. **No Neo4j.** Refresh wipes the graph. |
-| One number everywhere | **Not yet.** SPA carbon pages use a **second** DEMO spine (`src/demo/canonical.ts`): **2,140 / 4,210 / 8,497** — same headline **14,847**, different breakdown. Command Center HUD reads the kernel graph; Carbon / Scope pages read `canonical.ts`. Specialist `carbon.post` is a **noop** (`{ ok: true }`) and does not write the graph. |
+| Transferable carbon liability along a chain; **not** GHG Protocol; **not** a database product | **In-memory `ELiabilityGraph`**. Seed `seedHornbachSpine` posts 12 DEMO rows from `packages/earth-contracts` (`DEMO_GHG_LINE_ITEMS`) that **tonne-round** to **scope1+scope2+scope3** (split **2,847 / 4,123 / 7,877**). Views: carbon / “CSRD E1-6” / audit. **No Neo4j.** Refresh wipes the graph. |
+| One number everywhere | **Yes, as DEMO.** SPA carbon pages and the kernel seed import the same contracts module. Totals are derived (s1+s2+s3). Marked DEMO / INPUT_UNVERIFIED / synthetic; unsuitable for reporting/tax/audit/customer/investor use. Specialist `carbon.post` is still a **noop** (`{ ok: true }`) and does not write the graph. |
 
 ### Kafka / event bus
 
@@ -124,7 +124,7 @@ This is the only **durable** product slice. Document: `docs/FIRST_PROCESS_MATERI
 
 - Workflow `MATERIAL_OPPORTUNITY_INTAKE` `0.1`, policy `prime-v0.1`, ≤ 5 tasks.
 - Persists: orgs, users, material batches, sessions, tasks, audit events.
-- DEVELOPMENT headers: `x-earth-org-id`, `x-earth-user-id`, `x-earth-user-role` (lookup in Postgres — **not OIDC**).
+- DEVELOPMENT headers: `x-earth-org-id`, `x-earth-user-id`, `x-earth-user-role` behind `AuthProvider.getActor` → `AuthenticatedActor` + `TenantContext` (lookup in Postgres — **not OIDC**). Role is `users.role`; the role header cannot escalate.
 - Seed UUIDs (labelled DEVELOPMENT): org `11111111-1111-1111-1111-111111111111`, user `22222222-2222-2222-2222-222222222222` role `OWNER`.
 - Task stubs: `VALIDATE_BATCH`, `CHECK_EVIDENCE` (no document bytes), `CALCULATE_BASELINE` (echoes user CO₂e as `INPUT_UNVERIFIED`), `FIND_CANDIDATE_ROUTES` (empty), `NANOCHAT_EXTRACT` always `NOT_CONFIGURED` if created. **No LLM call.**
 - SPA page `/intake` POSTs via Vite proxy. Envelope `"mode": "DEVELOPMENT_ONLY"`.
@@ -169,7 +169,7 @@ Legend:
 |------------|-------|----------|
 | Vite SPA + NASA command bar, port 5180 | **A** | `vite.config.ts`, `src/App.tsx`, no Sidebar |
 | Fastify health/info + intake v0.1 + Postgres | **A** | `apps/api`, `docker-compose.yml` |
-| DEVELOPMENT identity headers | **A** (as prototype) / **D** if called “auth” | `apps/api/src/identity.ts` |
+| DEVELOPMENT identity headers | **A** (as prototype) / **D** if called “auth” | `apps/api/src/auth/` — `DevelopmentAuthProvider.getActor`; not OIDC |
 | Material intake SPA client | **A** | `/intake`, Zod client, proxy |
 | EarthBus in-memory events | **B** | Typed bus; not Kafka; not durable |
 | CompassGate 4 floors + digest | **B** | Real TS + tests; not paper COMPASS / not RAG |
@@ -178,8 +178,8 @@ Legend:
 | Hosted / Inkling / Tinker RL | **C** | Stubs; API flag false |
 | SHA-256 hash-chain + empty-JWK DID | **B** | Web Crypto; unsigned; ephemeral |
 | ZK-STARK / post-quantum proofs | **C** | Aegis copy now denies STARK |
-| E-liability in-memory graph | **B** | Seed 14,847; not Neo4j; `carbon.post` noop |
-| Single GHG spine across SPA + kernel | **C** / **D** | Two 14,847 splits (canonical vs seed) |
+| E-liability in-memory graph | **B** | Seed from shared DEMO_GHG_LINE_ITEMS; not Neo4j; `carbon.post` noop |
+| Single GHG spine across SPA + kernel | **A** (DEMO only) | Kernel e-liability split 2847/4123/7877; totals derived; see `docs/CANONICAL_DATA_SPINE.md` |
 | HITL approvals | **B** / **D** | In-tab `Set`; forgeable; no `actor_id` server record |
 | Capability tree | **B** | `can()` = “id exists”, not RBAC |
 | Roboflow / Tinker / Inkling adapters | **B** | Stubs + attach points; default stub |
@@ -190,7 +190,7 @@ Legend:
 | Kafka / Neo4j / Redis / chain | **C** | Compose postgres only |
 | Cirkel camera/CV/wallet/PWA | **C** | Forbidden + absent |
 | LLM / NanoChat / RAG | **C** | `nanoChat: false`; extract `NOT_CONFIGURED` |
-| Production tenancy / OIDC | **C** | Mock Users/Billing pages |
+| Production tenancy / OIDC | **C** | `TenantContext` + DEVELOPMENT provider only; no OIDC. See `docs/TENANT_CONTEXT_AND_AUTH_MIGRATION.md` |
 | CI (GitHub Actions) | **C** | Not in tree |
 | Chronos 10M twins / HyperMatrix FHE | **D** | Routed DEMO pages with fiction copy |
 
@@ -295,7 +295,7 @@ Do **not** say, imply, or let a screenshot imply:
 |-------------------|------------------------|
 | CompassGate scores / WarGame “COMPASS BLOCK” | Hardcoded floors on synthetic payloads. No BERTScore, no RAG corpus, no human eval. |
 | EcoAgent `E×PUE×CIF×WUE` | Default constants, not measured PUE/CIF/WUE. |
-| 14,847 tCO₂e | DEMO seed. Two disagreeing scope splits. Not Hornbach (or any tenant) inventory. |
+| 14,847 tCO₂e | DEMO seed. One scope split (2,847 / 4,123 / 7,877) derived from shared line items. Not Hornbach (or any tenant) inventory. Unsuitable for reporting/tax/audit/customer/investor use. |
 | Hash-chain digests on Aegis | Ephemeral SHA-256 commitments in the tab. Not a published ledger, not ZK. |
 | Session-rl probabilities / trajectory rewards | Bandit over a 6-item mission catalog. Not a trained policy. |
 | LangGraph node ticks in the HUD | In-browser FSM logs. Not a production orchestrator. |
@@ -328,6 +328,6 @@ Do **not** say, imply, or let a screenshot imply:
 
 Copy below into AlphaXiv; keep this file for the long version.
 
-> EARTH (`github.com/Broser-ai/EARTH`, `main`) is a **development prototype**, not deployed science. Today: Vite SPA :5180 (NASA command bar, DEMO ESG screens) + Fastify/Postgres :3001 (**Material Opportunity Intake v0.1**, deterministic stubs, DEVELOPMENT headers — not auth) + an **in-tab** TS kernel (CompassGate floors, LangGraph FSM, session-rl bandit, SHA-256 hash-chain, in-memory e-liability seed).  
-> COMPASS 2603.11277 → **not** the paper’s RAG/LLM-as-judge system; four hardcoded TS floors. How Hungry is AI → EcoAgent **heuristic** (E×PUE×CIF×WUE defaults), no telemetry. e-liability → in-memory graph, **not** Neo4j; SPA carbon pages still use a second 14,847 split. Kafka → `EarthBus` in RAM. ZK-STARK → **absent** (SHA-256 only, empty JWK DID). RL → session-rl in the tab; API `reinforcementLearning: false`. Tinker/Inkling/Roboflow → **stubs**. Cirkel is **not this repo**. Sweep/Resourcify are competitors (14 mock recyclers, not 800). Battery DPP / CSRD Omnibus / PPWR are **UI/docs**, not implementations.  
+> EARTH (`github.com/Broser-ai/EARTH`, `main`) is a **development prototype**, not deployed science. Today: Vite SPA :5180 (NASA command bar, DEMO ESG screens) + Fastify/Postgres :3001 (**Material Opportunity Intake v0.1**, deterministic stubs, DEVELOPMENT headers behind TenantContext — not auth) + an **in-tab** TS kernel (CompassGate floors, LangGraph FSM, session-rl bandit, SHA-256 hash-chain, in-memory e-liability seed).  
+> COMPASS 2603.11277 → **not** the paper’s RAG/LLM-as-judge system; four hardcoded TS floors. How Hungry is AI → EcoAgent **heuristic** (E×PUE×CIF×WUE defaults), no telemetry. e-liability → in-memory graph, **not** Neo4j; SPA carbon pages and the kernel share one DEMO GHG spine (2847/4123/7877, totals derived). Kafka → `EarthBus` in RAM. ZK-STARK → **absent** (SHA-256 only, empty JWK DID). RL → session-rl in the tab; API `reinforcementLearning: false`. Tinker/Inkling/Roboflow → **stubs**. Cirkel is **not this repo**. Sweep/Resourcify are competitors (14 mock recyclers, not 800). Battery DPP / CSRD Omnibus / PPWR are **UI/docs**, not implementations.  
 > Do not cite CSRD, EU AI Act, ZK, autonomy, or live ERP. Cite this file + SHA. Demo: `docs/ALPHAXIV_STATUS.md` §4 curl.

@@ -13,7 +13,7 @@ import {
   PolicyError,
   WORKFLOW_TYPE,
   WORKFLOW_VERSION,
-  type Identity,
+  type TenantContext,
   type NextRecommendedAction,
   type ReasonCode,
   type SessionState,
@@ -93,9 +93,10 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 export class PrimeService {
+  /** Intake persistence. Every public method takes TenantContext — never a raw org id from the body. */
   constructor(private readonly pool: Pool) {}
 
-  async startOpportunity(identity: Identity, input: StartOpportunityInput): Promise<SessionEnvelope> {
+  async startOpportunity(tenant: TenantContext, input: StartOpportunityInput): Promise<SessionEnvelope> {
     const plan = planMaterialOpportunity(input);
 
     const client = await this.pool.connect();
@@ -106,10 +107,10 @@ export class PrimeService {
         `SELECT * FROM execution_sessions
          WHERE organization_id = $1 AND idempotency_key = $2
          FOR UPDATE`,
-        [identity.organizationId, input.idempotencyKey],
+        [tenant.organizationId, input.idempotencyKey],
       );
       if (existing.rows[0]) {
-        const envelope = await this.loadEnvelope(client, identity.organizationId, existing.rows[0].id);
+        const envelope = await this.loadEnvelope(client, tenant, existing.rows[0].id);
         if (!envelope) {
           throw new Error('idempotent session missing after lock');
         }
@@ -127,13 +128,13 @@ export class PrimeService {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'ACTIVE', $8)`,
         [
           batchId,
-          identity.organizationId,
+          tenant.organizationId,
           input.materialBatch.externalReference ?? null,
           input.materialBatch.materialClass.trim(),
           input.materialBatch.quantityKg,
           input.materialBatch.facilityName ?? null,
           input.materialBatch.availableFrom ?? null,
-          identity.userId,
+          tenant.actor.actorId,
         ],
       );
 
@@ -153,7 +154,7 @@ export class PrimeService {
         )`,
         [
           sessionId,
-          identity.organizationId,
+          tenant.organizationId,
           batchId,
           WORKFLOW_TYPE,
           WORKFLOW_VERSION,
@@ -166,15 +167,15 @@ export class PrimeService {
           plan.budget.maxOutputTokens,
           plan.budget.maxEstimatedCostDkk,
           plan.budget.maxEstimatedGco2e,
-          identity.userId,
+          tenant.actor.actorId,
         ],
       );
 
       await insertAuditEvent(client, {
-        organizationId: identity.organizationId,
+        organizationId: tenant.organizationId,
         sessionId,
         actorType: 'USER',
-        actorId: identity.userId,
+        actorId: tenant.actor.actorId,
         eventType: 'SESSION_CREATED',
         previousState: null,
         nextState: 'QUEUED',
@@ -198,7 +199,7 @@ export class PrimeService {
           [
             taskId,
             sessionId,
-            identity.organizationId,
+            tenant.organizationId,
             planned.taskType,
             planned.initialState,
             planned.required,
@@ -208,7 +209,7 @@ export class PrimeService {
           ],
         );
         await insertAuditEvent(client, {
-          organizationId: identity.organizationId,
+          organizationId: tenant.organizationId,
           sessionId,
           taskId,
           actorType: 'SYSTEM',
@@ -226,7 +227,7 @@ export class PrimeService {
       }
 
       await this.transitionSession(client, {
-        organizationId: identity.organizationId,
+        organizationId: tenant.organizationId,
         sessionId,
         from: 'QUEUED',
         to: 'RUNNING',
@@ -234,7 +235,7 @@ export class PrimeService {
         actorId: 'prime-v0.1',
       });
 
-      const envelope = await this.loadEnvelope(client, identity.organizationId, sessionId);
+      const envelope = await this.loadEnvelope(client, tenant, sessionId);
       if (!envelope) {
         throw new Error('session missing after insert');
       }
@@ -248,16 +249,16 @@ export class PrimeService {
     }
   }
 
-  async getSession(organizationId: string, sessionId: string): Promise<SessionEnvelope | null> {
+  async getSession(tenant: TenantContext, sessionId: string): Promise<SessionEnvelope | null> {
     const client = await this.pool.connect();
     try {
-      return await this.loadEnvelope(client, organizationId, sessionId);
+      return await this.loadEnvelope(client, tenant, sessionId);
     } finally {
       client.release();
     }
   }
 
-  async listAuditEvents(organizationId: string, sessionId: string): Promise<
+  async listAuditEvents(tenant: TenantContext, sessionId: string): Promise<
     Array<{
       id: string;
       organizationId: string;
@@ -277,7 +278,7 @@ export class PrimeService {
   > {
     const session = await this.pool.query(
       `SELECT id FROM execution_sessions WHERE id = $1 AND organization_id = $2`,
-      [sessionId, organizationId],
+      [sessionId, tenant.organizationId],
     );
     if (!session.rows[0]) {
       return null;
@@ -302,7 +303,7 @@ export class PrimeService {
       `SELECT * FROM audit_events
        WHERE organization_id = $1 AND session_id = $2
        ORDER BY created_at ASC, id ASC`,
-      [organizationId, sessionId],
+      [tenant.organizationId, sessionId],
     );
 
     return result.rows.map((row) => ({
@@ -323,7 +324,7 @@ export class PrimeService {
     }));
   }
 
-  async runNext(identity: Identity, sessionId: string): Promise<RunNextResult | null> {
+  async runNext(tenant: TenantContext, sessionId: string): Promise<RunNextResult | null> {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -332,7 +333,7 @@ export class PrimeService {
         `SELECT * FROM execution_sessions
          WHERE id = $1 AND organization_id = $2
          FOR UPDATE`,
-        [sessionId, identity.organizationId],
+        [sessionId, tenant.organizationId],
       );
       const session = sessionResult.rows[0];
       if (!session) {
@@ -353,12 +354,12 @@ export class PrimeService {
          ORDER BY priority ASC, created_at ASC
          LIMIT 1
          FOR UPDATE SKIP LOCKED`,
-        [sessionId, identity.organizationId],
+        [sessionId, tenant.organizationId],
       );
       const task = queued.rows[0];
       if (!task) {
-        await this.recomputeSessionState(client, session);
-        const envelope = await this.requireEnvelope(client, identity.organizationId, sessionId);
+        await this.recomputeSessionState(client, tenant, session);
+        const envelope = await this.requireEnvelope(client, tenant, sessionId);
         await client.query('COMMIT');
         return { ...envelope, claimedTask: null };
       }
@@ -372,7 +373,7 @@ export class PrimeService {
         [task.id, attempts],
       );
       await insertAuditEvent(client, {
-        organizationId: identity.organizationId,
+        organizationId: tenant.organizationId,
         sessionId,
         taskId: task.id,
         actorType: 'WORKER',
@@ -400,7 +401,7 @@ export class PrimeService {
           [task.id, 'BUDGET_EXCEEDED', JSON.stringify({ reasonCode: 'BUDGET_EXCEEDED' })],
         );
         await insertAuditEvent(client, {
-          organizationId: identity.organizationId,
+          organizationId: tenant.organizationId,
           sessionId,
           taskId: task.id,
           actorType: 'WORKER',
@@ -412,7 +413,7 @@ export class PrimeService {
           metadata: { reasonCode: 'BUDGET_EXCEEDED' },
         });
         await this.transitionSession(client, {
-          organizationId: identity.organizationId,
+          organizationId: tenant.organizationId,
           sessionId,
           from: session.state,
           to: 'BUDGET_STOPPED',
@@ -420,7 +421,7 @@ export class PrimeService {
           actorId: 'prime-v0.1',
           metadata: { reasonCode: 'BUDGET_EXCEEDED' },
         });
-        const envelope = await this.requireEnvelope(client, identity.organizationId, sessionId);
+        const envelope = await this.requireEnvelope(client, tenant, sessionId);
         await client.query('COMMIT');
         return { ...envelope, claimedTask: envelope.tasks.find((item) => item.id === task.id) ?? null };
       }
@@ -462,7 +463,7 @@ export class PrimeService {
         ],
       );
       await insertAuditEvent(client, {
-        organizationId: identity.organizationId,
+        organizationId: tenant.organizationId,
         sessionId,
         taskId: task.id,
         actorType: 'WORKER',
@@ -479,16 +480,16 @@ export class PrimeService {
       });
 
       const refreshed = await client.query<SessionRow>(
-        `SELECT * FROM execution_sessions WHERE id = $1 FOR UPDATE`,
-        [sessionId],
+        `SELECT * FROM execution_sessions WHERE id = $1 AND organization_id = $2 FOR UPDATE`,
+        [sessionId, tenant.organizationId],
       );
       const nextSession = refreshed.rows[0];
       if (!nextSession) {
         throw new Error('session missing after task update');
       }
-      await this.recomputeSessionState(client, nextSession);
+      await this.recomputeSessionState(client, tenant, nextSession);
 
-      const envelope = await this.requireEnvelope(client, identity.organizationId, sessionId);
+      const envelope = await this.requireEnvelope(client, tenant, sessionId);
       await client.query('COMMIT');
       return { ...envelope, claimedTask: envelope.tasks.find((item) => item.id === task.id) ?? null };
     } catch (error) {
@@ -517,14 +518,15 @@ export class PrimeService {
 
   private async recomputeSessionState(
     client: PoolClient,
+    tenant: TenantContext,
     session: SessionRow,
   ): Promise<void> {
-    const tasks = await this.loadTasks(client, session.id);
+    const tasks = await this.loadTasks(client, tenant, session.id);
     const required = tasks.filter((task) => task.required);
     const failed = required.filter((task) => task.state === 'FAILED' || task.state === 'CANCELLED');
     if (failed.length > 0) {
       await this.transitionSession(client, {
-        organizationId: session.organization_id,
+        organizationId: tenant.organizationId,
         sessionId: session.id,
         from: session.state,
         to: 'FAILED',
@@ -541,7 +543,7 @@ export class PrimeService {
     if (pending.length > 0) {
       if (session.state !== 'RUNNING' && session.state !== 'WAITING_FOR_DEPENDENCY') {
         await this.transitionSession(client, {
-          organizationId: session.organization_id,
+          organizationId: tenant.organizationId,
           sessionId: session.id,
           from: session.state,
           to: 'RUNNING',
@@ -566,7 +568,7 @@ export class PrimeService {
 
     const next: SessionState = evidenceMissing ? 'WAITING_FOR_DEPENDENCY' : 'COMPLETED';
     await this.transitionSession(client, {
-      organizationId: session.organization_id,
+      organizationId: tenant.organizationId,
       sessionId: session.id,
       from: session.state,
       to: next,
@@ -610,20 +612,26 @@ export class PrimeService {
     });
   }
 
-  private async loadTasks(client: PoolClient, sessionId: string): Promise<TaskRow[]> {
+  private async loadTasks(
+    client: PoolClient,
+    tenant: TenantContext,
+    sessionId: string,
+  ): Promise<TaskRow[]> {
     const result = await client.query<TaskRow>(
-      `SELECT * FROM execution_tasks WHERE session_id = $1 ORDER BY priority ASC, created_at ASC`,
-      [sessionId],
+      `SELECT * FROM execution_tasks
+       WHERE session_id = $1 AND organization_id = $2
+       ORDER BY priority ASC, created_at ASC`,
+      [sessionId, tenant.organizationId],
     );
     return result.rows;
   }
 
   private async requireEnvelope(
     client: PoolClient,
-    organizationId: string,
+    tenant: TenantContext,
     sessionId: string,
   ): Promise<SessionEnvelope> {
-    const envelope = await this.loadEnvelope(client, organizationId, sessionId);
+    const envelope = await this.loadEnvelope(client, tenant, sessionId);
     if (!envelope) {
       throw new Error('session missing after write');
     }
@@ -632,24 +640,24 @@ export class PrimeService {
 
   private async loadEnvelope(
     client: PoolClient,
-    organizationId: string,
+    tenant: TenantContext,
     sessionId: string,
   ): Promise<SessionEnvelope | null> {
     const sessionResult = await client.query<SessionRow>(
       `SELECT * FROM execution_sessions WHERE id = $1 AND organization_id = $2`,
-      [sessionId, organizationId],
+      [sessionId, tenant.organizationId],
     );
     const session = sessionResult.rows[0];
     if (!session) {
       return null;
     }
-    const tasks = await this.loadTasks(client, sessionId);
+    const tasks = await this.loadTasks(client, tenant, sessionId);
     const created = await client.query<{ metadata_json: Record<string, unknown> }>(
       `SELECT metadata_json FROM audit_events
-       WHERE session_id = $1 AND event_type = 'SESSION_CREATED'
+       WHERE session_id = $1 AND organization_id = $2 AND event_type = 'SESSION_CREATED'
        ORDER BY created_at ASC
        LIMIT 1`,
-      [sessionId],
+      [sessionId, tenant.organizationId],
     );
     const startMeta = asRecord(created.rows[0]?.metadata_json);
     const reasonCodes = collectReasonCodes(startMeta, tasks);

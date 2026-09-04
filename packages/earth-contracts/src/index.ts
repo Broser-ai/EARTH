@@ -2,8 +2,9 @@
  * Shared EARTH contracts for SPA + API.
  *
  * Spelling and array order are frozen to docs/SHARED_CONTRACTS.md.
- * This module is types and literals only: no LLM, NanoChat client,
- * Roboflow, Tinker, blockchain, or browser LangGraph runtime.
+ * This module is types and literals only, plus the canonical DEMO GHG spine
+ * (`demo-ghg.ts`). No LLM, NanoChat client, Roboflow, Tinker, blockchain,
+ * or browser LangGraph runtime.
  */
 
 export const DEVELOPMENT_MODE = 'DEVELOPMENT_ONLY' as const;
@@ -151,3 +152,26 @@ export function assertNever(value: never): never {
 export function isTerminalSessionState(state: SessionState): state is TerminalSessionState {
   return (TERMINAL_SESSION_STATES as readonly string[]).includes(state);
 }
+
+export {
+  DEMO_GHG_CLASSIFICATION,
+  DEMO_GHG_HONESTY,
+  DEMO_GHG_LINE_ITEMS,
+  DEMO_GHG_ORIGIN,
+  DEMO_GHG_SCOPE_SHARE,
+  DEMO_GHG_SCOPES,
+  DEMO_GHG_SOURCE,
+  DEMO_GHG_TOTAL,
+  DEMO_GHG_UNSUITABLE_FOR,
+  demoGhgMethodHonesty,
+  demoGhgMethodLabel,
+  demoGhgScopeLabel,
+  demoGhgScopeShare,
+  sumDemoGhgByScope,
+  type DemoGhgLineItem,
+  type DemoGhgMethod,
+  type DemoGhgScope,
+  type DemoGhgScopeShare,
+  type DemoGhgScopeTotals,
+  type DemoGhgUnsuitableUse,
+} from './demo-ghg';

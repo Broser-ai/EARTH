@@ -8,6 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
+      '@earth/contracts': resolve(__dirname, 'packages/earth-contracts/src/index.ts'),
     },
   },
   appType: 'spa',

@@ -11,38 +11,31 @@ import {
   Calculator,
   HelpCircle,
 } from 'lucide-react';
-
-import { GHG_SPINE, GHG_SCOPE_SHARE, GHG_TOTAL } from '../demo/canonical';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import {
+  GHG_LINE_ITEMS,
+  GHG_SCOPE_SHARE,
+  GHG_SPINE,
+} from '../demo/canonical';
+import {
+  demoGhgMethodHonesty,
+  demoGhgMethodLabel,
+  type DemoGhgLineItem,
+  type DemoGhgMethod,
+} from '../contracts';
 
 type ScopeId = 'all' | 'scope1' | 'scope2' | 'scope3';
 type DataQuality = 'High' | 'Medium' | 'Low' | 'N/A';
-type MethodTone = 'measured' | 'calculated' | 'estimated' | 'na';
+type MethodTone = 'measured' | 'calculated' | 'estimated';
 
-interface Scope1Row {
-  source: string;
-  activity: string;
-  factor: string;
-  emissions: number;
-  method: string;
-  quality: DataQuality;
-}
-
-interface Scope3Row {
-  cat: number;
+interface SpineRow {
+  id: string;
   name: string;
   description: string;
   emissions: number;
   method: string;
-  confidence: DataQuality;
+  honesty: 'ESTIMATED' | 'INPUT_UNVERIFIED';
+  quality: DataQuality;
 }
-
-// ---------------------------------------------------------------------------
-// Data — subtotals are wired to GHG_SPINE. Figures are DEMO / ESTIMATED / INPUT_UNVERIFIED.
-// ---------------------------------------------------------------------------
 
 const SCOPE_TOTALS = {
   scope1: { value: GHG_SPINE.scope1, pct: GHG_SCOPE_SHARE.scope1Pct, color: '#EF4444', label: 'Direct emissions' },
@@ -50,119 +43,78 @@ const SCOPE_TOTALS = {
   scope3: { value: GHG_SPINE.scope3, pct: GHG_SCOPE_SHARE.scope3Pct, color: '#60A5FA', label: 'Value chain' },
 };
 
-const GRAND_TOTAL = GHG_TOTAL;
+const GRAND_TOTAL = GHG_SPINE.scope1 + GHG_SPINE.scope2 + GHG_SPINE.scope3;
 
-const SCOPE1_ROWS: Scope1Row[] = [
-  {
-    source: 'Natural gas (heating)',
-    activity: '4,703 MWh',
-    factor: '0.202 kgCO2/kWh',
-    emissions: 950.0,
-    method: 'Measured',
-    quality: 'High',
-  },
-  {
-    source: 'Fleet diesel',
-    activity: '216,400 L',
-    factor: '2.68 kgCO2/L',
-    emissions: 580.0,
-    method: 'Measured',
-    quality: 'High',
-  },
-  {
-    source: 'Refrigerants (R-410A leakage)',
-    activity: '143.7 kg',
-    factor: '2,088 GWP',
-    emissions: 300.0,
-    method: 'Estimated',
-    quality: 'Medium',
-  },
-  {
-    source: 'Fugitive emissions (SF6, switchgear)',
-    activity: '5.16 kg',
-    factor: '25,200 GWP',
-    emissions: 130.0,
-    method: 'Estimated',
-    quality: 'Low',
-  },
-  {
-    source: 'On-site backup generators (diesel)',
-    activity: '37,310 L',
-    factor: '2.68 kgCO2/L',
-    emissions: 100.0,
-    method: 'Measured',
-    quality: 'High',
-  },
-  {
-    source: 'LPG forklifts',
-    activity: '52,980 L',
-    factor: '1.51 kgCO2/L',
-    emissions: 80.0,
-    method: 'Measured',
-    quality: 'Medium',
-  },
-];
-
-const SCOPE1_SUBTOTAL = SCOPE1_ROWS.reduce((s, r) => s + r.emissions, 0);
-
-const SCOPE2_ELECTRICITY = {
-  activity: '18,400 MWh',
-  locationFactor: '0.198 kgCO2/kWh',
-  locationBased: 3643.0,
-  marketFactor: '0.118 kgCO2/kWh (blended residual mix)',
-  marketBased: 2180.0,
-  renewablePct: 62,
+const LINE_NOTES: Record<string, string> = {
+  'spine-001': 'DEMO on-site combustion — synthetic, not metered',
+  'spine-002': 'DEMO owned fleet — synthetic, not metered',
+  'spine-003': 'DEMO refrigerant leak estimate — synthetic',
+  'spine-004': 'DEMO purchased electricity — synthetic stand-in, not a location/market dual report',
+  'spine-005': 'DEMO district heating — synthetic',
+  'spine-006': 'DEMO spend-based stand-in — not supplier PCFs',
+  'spine-007': 'DEMO upstream freight — synthetic',
+  'spine-008': 'DEMO commuting estimate — synthetic',
+  'spine-009': 'DEMO business travel — synthetic',
+  'spine-010': 'DEMO waste — synthetic, not weighbridge data',
+  'spine-011': 'DEMO downstream freight — synthetic',
+  'spine-012': 'DEMO use-phase estimate — synthetic',
 };
 
-const SCOPE2_HEATING = {
-  activity: '12,600 MWh',
-  locationFactor: '0.045 kgCO2/kWh',
-  locationBased: 567.0,
-  marketBased: 567.0, // no market instruments available for district heat
-};
+function qualityForMethod(method: DemoGhgMethod): DataQuality {
+  switch (method) {
+    case 'measured':
+      return 'High';
+    case 'calculated':
+      return 'Medium';
+    case 'estimated':
+      return 'Low';
+    default: {
+      const exhaustive: never = method;
+      return exhaustive;
+    }
+  }
+}
 
-const SCOPE2_LOCATION_TOTAL = SCOPE2_ELECTRICITY.locationBased + SCOPE2_HEATING.locationBased;
-const SCOPE2_MARKET_TOTAL = SCOPE2_ELECTRICITY.marketBased + SCOPE2_HEATING.marketBased;
+function toSpineRow(item: DemoGhgLineItem): SpineRow {
+  return {
+    id: item.id,
+    name: item.label,
+    description: LINE_NOTES[item.id] ?? 'DEMO / INPUT_UNVERIFIED synthetic line',
+    emissions: item.tCO2e,
+    method: demoGhgMethodLabel(item.method),
+    honesty: demoGhgMethodHonesty(item.method),
+    quality: qualityForMethod(item.method),
+  };
+}
 
-const SCOPE3_ROWS: Scope3Row[] = [
-  { cat: 1, name: 'Purchased goods & services', description: 'Cradle-to-gate emissions of purchased materials, components and services', emissions: 4218, method: 'Spend-based', confidence: 'Low' },
-  { cat: 2, name: 'Capital goods', description: 'Emissions from production of capital equipment, machinery and buildings', emissions: 210, method: 'Spend-based', confidence: 'Low' },
-  { cat: 3, name: 'Fuel- and energy-related activities', description: 'Upstream (well-to-tank) emissions of fuel and energy not in Scope 1/2', emissions: 145, method: 'Activity-based', confidence: 'Medium' },
-  { cat: 4, name: 'Upstream transportation & distribution', description: 'Third-party freight and logistics moving goods to the company', emissions: 1847, method: 'Activity-based', confidence: 'Medium' },
-  { cat: 5, name: 'Waste generated in operations', description: 'Disposal and treatment of waste generated at owned/operated facilities', emissions: 412, method: 'Measured', confidence: 'High' },
-  { cat: 6, name: 'Business travel', description: 'Air, rail and road travel for business purposes', emissions: 287, method: 'Distance-based', confidence: 'Medium' },
-  { cat: 7, name: 'Employee commuting', description: 'Employee travel between home and work', emissions: 847, method: 'Survey-based', confidence: 'Low' },
-  { cat: 8, name: 'Upstream leased assets', description: 'Assets leased by the company, not already in Scope 1/2', emissions: 38, method: 'Activity-based', confidence: 'Medium' },
-  { cat: 9, name: 'Downstream transportation & distribution', description: 'Transport and distribution of sold products after point of sale', emissions: 165, method: 'Activity-based', confidence: 'Medium' },
-  { cat: 10, name: 'Processing of sold products', description: 'Processing by downstream companies of intermediate products sold', emissions: 0, method: 'Not applicable', confidence: 'N/A' },
-  { cat: 11, name: 'Use of sold products', description: 'Direct use-phase emissions of products sold, over their lifetime', emissions: 210, method: 'Estimated', confidence: 'Low' },
-  { cat: 12, name: 'End-of-life treatment of sold products', description: 'Disposal and treatment of sold products at end of life', emissions: 68, method: 'Estimated', confidence: 'Medium' },
-  { cat: 13, name: 'Downstream leased assets', description: 'Assets owned by the company and leased to other entities', emissions: 12, method: 'Not applicable', confidence: 'N/A' },
-  { cat: 14, name: 'Franchises', description: 'Emissions from operation of franchises not in Scope 1/2', emissions: 0, method: 'Not applicable', confidence: 'N/A' },
-  { cat: 15, name: 'Investments', description: 'Proportional share of investee operational emissions', emissions: 38, method: 'Spend-based', confidence: 'Low' },
-];
+const SCOPE1_ROWS = GHG_LINE_ITEMS.filter((item) => item.scope === 'scope1').map(toSpineRow);
+const SCOPE2_ROWS = GHG_LINE_ITEMS.filter((item) => item.scope === 'scope2').map(toSpineRow);
+const SCOPE3_ROWS = GHG_LINE_ITEMS.filter((item) => item.scope === 'scope3').map(toSpineRow);
 
-const SCOPE3_SUBTOTAL = SCOPE3_ROWS.reduce((s, r) => s + r.emissions, 0);
+const SCOPE1_SUBTOTAL = SCOPE1_ROWS.reduce((sum, row) => sum + row.emissions, 0);
+const SCOPE2_SUBTOTAL = SCOPE2_ROWS.reduce((sum, row) => sum + row.emissions, 0);
+const SCOPE3_SUBTOTAL = SCOPE3_ROWS.reduce((sum, row) => sum + row.emissions, 0);
 
-// Data-quality dashboard — three-bucket rollup across all 14,847 tCO2e
-const QUALITY_BUCKETS = [
-  { label: 'Measured', value: 6332, color: '#34D399', tone: 'measured' as MethodTone },
-  { label: 'Calculated (activity / spend-based)', value: 7807, color: '#F59E0B', tone: 'calculated' as MethodTone },
-  { label: 'Estimated', value: 708, color: '#EF4444', tone: 'estimated' as MethodTone },
-];
-const QUALITY_TOTAL = QUALITY_BUCKETS.reduce((s, b) => s + b.value, 0);
+const QUALITY_BUCKETS = (['measured', 'calculated', 'estimated'] as const).map((tone) => {
+  const value = GHG_LINE_ITEMS.filter((item) => item.method === tone).reduce(
+    (sum, item) => sum + item.tCO2e,
+    0,
+  );
+  const labels: Record<DemoGhgMethod, { label: string; color: string }> = {
+    measured: { label: 'Measured (still INPUT_UNVERIFIED DEMO)', color: '#34D399' },
+    calculated: { label: 'Calculated (DEMO)', color: '#F59E0B' },
+    estimated: { label: 'Estimated (DEMO)', color: '#EF4444' },
+  };
+  return { ...labels[tone], value, tone: tone as MethodTone };
+});
+const QUALITY_TOTAL = QUALITY_BUCKETS.reduce((sum, bucket) => sum + bucket.value, 0);
 
 const RECOMMENDATIONS = [
-  'Cat 1 (Purchased goods) is spend-based and Low confidence — 49.6% of Scope 3. Highest-leverage upgrade: supplier-specific PCF data for top 20 suppliers by spend.',
-  'Cat 7 (Employee commuting) relies on annual survey — move to a rolling quarterly pulse survey to reduce estimation drift.',
-  'Fugitive SF6 (Scope 1) is Low quality — install continuous leak-detection sensors on switchgear to convert to Measured.',
-  'Cat 11 (Use of sold products) is Low confidence — commission a product-use energy study for the top 3 SKUs by volume.',
-  'Scope 2 market-based reporting shows a 1,463 tCO2e reduction from 62% renewable procurement — expand PPA coverage toward 100% to compress this further.',
+  'DEMO / INPUT_UNVERIFIED / synthetic. Unsuitable for reporting, tax, audit, customer, or investor use.',
+  'Totals are scope1 + scope2 + scope3 from packages/earth-contracts. Not a GHG Protocol inventory.',
+  'The in-tab kernel e-liability graph posts the same line items. Refresh wipes the graph. Not Neo4j.',
+  'Do not treat these figures as Hornbach (or any tenant) inventory, CSRD E1-6 evidence, or ISO 14064.',
 ];
-
-// ---------------------------------------------------------------------------
-// Small shared bits
-// ---------------------------------------------------------------------------
 
 function fmt(n: number): string {
   return n.toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: n % 1 === 0 ? 0 : 1 });
@@ -195,10 +147,6 @@ function QualityBadge({ quality }: { quality: DataQuality }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 export default function EmissionsScope() {
   const [activeScope, setActiveScope] = useState<ScopeId>('all');
 
@@ -224,14 +172,13 @@ export default function EmissionsScope() {
 
   return (
     <div className="min-h-screen w-full bg-[#060B18] px-6 py-6 text-[#F1F5F9]">
-      {/* Header */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-mono text-lg font-bold tracking-widest text-[#F1F5F9]">
             SCOPE 1 / 2 / 3 BREAKDOWN
           </h1>
           <p className="mt-1 text-xs text-[#94A3B8]">
-            ESTIMATED / INPUT_UNVERIFIED DEMO inventory — GHG Protocol layout only, not a verified disclosure
+            DEMO / ESTIMATED / INPUT_UNVERIFIED synthetic inventory — not a verified disclosure
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-4 py-2 backdrop-blur">
@@ -241,7 +188,6 @@ export default function EmissionsScope() {
         </div>
       </div>
 
-      {/* Scope selector tabs */}
       <div className="mb-6 flex flex-wrap gap-2">
         {tabs.map((tab) => (
           <button
@@ -259,7 +205,6 @@ export default function EmissionsScope() {
         ))}
       </div>
 
-      {/* Scope summary bar */}
       <Card className="mb-6 p-4">
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           {(
@@ -292,7 +237,6 @@ export default function EmissionsScope() {
           ))}
         </div>
 
-        {/* Horizontal stacked bar */}
         <div className="h-4 w-full overflow-hidden rounded-full bg-white/5">
           <div className="flex h-full w-full">
             {stackedSegments.map((seg) => (
@@ -307,192 +251,46 @@ export default function EmissionsScope() {
         </div>
         <div className="mt-2 flex flex-wrap justify-between font-mono text-[10px] text-[#475569]">
           <span>0%</span>
-          <span>Total inventory: {fmt(GRAND_TOTAL)} tCO2e across {SCOPE3_ROWS.length + 6 + 2} emission sources</span>
+          <span>
+            DEMO inventory: {fmt(GRAND_TOTAL)} tCO2e across {GHG_LINE_ITEMS.length} synthetic sources
+          </span>
           <span>100%</span>
         </div>
       </Card>
 
-      {/* Scope 1 detail */}
       {showScope1 && (
-        <Card className="mb-6 overflow-hidden">
-          <SectionHeader
-            icon={Flame}
-            color="#EF4444"
-            title="Scope 1 — Direct emissions"
-            subtitle={`${fmt(SCOPE1_SUBTOTAL)} tCO2e across ${SCOPE1_ROWS.length} sources`}
-          />
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left">
-              <thead>
-                <tr className="border-b border-white/5 font-mono text-[10px] uppercase tracking-wide text-[#475569]">
-                  <th className="px-4 py-2.5 font-medium">Source</th>
-                  <th className="px-4 py-2.5 font-medium">Activity data</th>
-                  <th className="px-4 py-2.5 font-medium">Emission factor</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Emissions (tCO2e)</th>
-                  <th className="px-4 py-2.5 font-medium">Method</th>
-                  <th className="px-4 py-2.5 font-medium">Data quality</th>
-                </tr>
-              </thead>
-              <tbody className="font-mono text-xs">
-                {SCOPE1_ROWS.map((row) => (
-                  <tr key={row.source} className="border-b border-white/5 last:border-0">
-                    <td className="px-4 py-2.5 text-[#F1F5F9]">{row.source}</td>
-                    <td className="px-4 py-2.5 text-[#94A3B8]">{row.activity}</td>
-                    <td className="px-4 py-2.5 text-[#94A3B8]">{row.factor}</td>
-                    <td className="px-4 py-2.5 text-right font-semibold text-[#F1F5F9]">{fmt(row.emissions)}</td>
-                    <td className="px-4 py-2.5 text-[#94A3B8]">{row.method}</td>
-                    <td className="px-4 py-2.5">
-                      <QualityBadge quality={row.quality} />
-                    </td>
-                  </tr>
-                ))}
-                <tr className="bg-white/[0.02]">
-                  <td className="px-4 py-2.5 font-semibold text-[#F1F5F9]" colSpan={3}>
-                    Scope 1 total
-                  </td>
-                  <td className="px-4 py-2.5 text-right font-bold text-[#EF4444]">{fmt(SCOPE1_SUBTOTAL)}</td>
-                  <td className="px-4 py-2.5" colSpan={2} />
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <ScopeTable
+          icon={Flame}
+          color="#EF4444"
+          title="Scope 1 — Direct emissions"
+          rows={SCOPE1_ROWS}
+          subtotal={SCOPE1_SUBTOTAL}
+          totalColor="#EF4444"
+        />
       )}
 
-      {/* Scope 2 detail */}
       {showScope2 && (
-        <Card className="mb-6 overflow-hidden">
-          <SectionHeader
-            icon={Zap}
-            color="#F59E0B"
-            title="Scope 2 — Energy indirect emissions"
-            subtitle="Dual reporting per GHG Protocol Scope 2 Guidance"
-          />
-          <div className="grid grid-cols-1 gap-4 p-4 lg:grid-cols-2">
-            <div className="rounded-md border border-white/5 p-4">
-              <p className="font-mono text-xs font-semibold tracking-wide text-[#F1F5F9]">
-                Grid electricity
-              </p>
-              <p className="mt-0.5 font-mono text-[10px] text-[#475569]">
-                Activity: {SCOPE2_ELECTRICITY.activity} · {SCOPE2_ELECTRICITY.renewablePct}% covered by renewable PPA / RECs
-              </p>
-              <div className="mt-3 space-y-2">
-                <MethodRow
-                  label="Location-based"
-                  factor={SCOPE2_ELECTRICITY.locationFactor}
-                  value={SCOPE2_ELECTRICITY.locationBased}
-                  color="#F59E0B"
-                />
-                <MethodRow
-                  label="Market-based"
-                  factor={SCOPE2_ELECTRICITY.marketFactor}
-                  value={SCOPE2_ELECTRICITY.marketBased}
-                  color="#34D399"
-                />
-              </div>
-            </div>
-            <div className="rounded-md border border-white/5 p-4">
-              <p className="font-mono text-xs font-semibold tracking-wide text-[#F1F5F9]">
-                District heating
-              </p>
-              <p className="mt-0.5 font-mono text-[10px] text-[#475569]">
-                Activity: {SCOPE2_HEATING.activity} · no market instruments available for this supply
-              </p>
-              <div className="mt-3 space-y-2">
-                <MethodRow
-                  label="Location-based"
-                  factor={SCOPE2_HEATING.locationFactor}
-                  value={SCOPE2_HEATING.locationBased}
-                  color="#F59E0B"
-                />
-                <MethodRow
-                  label="Market-based"
-                  factor="No supplier-specific instrument"
-                  value={SCOPE2_HEATING.marketBased}
-                  color="#94A3B8"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4 border-t border-white/5 px-4 py-3">
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-wide text-[#475569]">
-                Location-based total
-              </p>
-              <p className="font-mono text-lg font-bold text-[#F59E0B]">{fmt(SCOPE2_LOCATION_TOTAL)} tCO2e</p>
-            </div>
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-wide text-[#475569]">
-                Market-based total
-              </p>
-              <p className="font-mono text-lg font-bold text-[#34D399]">{fmt(SCOPE2_MARKET_TOTAL)} tCO2e</p>
-              <p className="mt-0.5 font-mono text-[10px] text-[#475569]">
-                {fmt(SCOPE2_LOCATION_TOTAL - SCOPE2_MARKET_TOTAL)} tCO2e avoided via renewable procurement
-              </p>
-            </div>
-          </div>
-        </Card>
+        <ScopeTable
+          icon={Zap}
+          color="#F59E0B"
+          title="Scope 2 — Energy indirect emissions"
+          rows={SCOPE2_ROWS}
+          subtotal={SCOPE2_SUBTOTAL}
+          totalColor="#F59E0B"
+        />
       )}
 
-      {/* Scope 3 detail */}
       {showScope3 && (
-        <Card className="mb-6 overflow-hidden">
-          <SectionHeader
-            icon={Globe2}
-            color="#60A5FA"
-            title="Scope 3 — Value chain emissions"
-            subtitle={`All 15 GHG Protocol categories · ${fmt(SCOPE3_SUBTOTAL)} tCO2e`}
-          />
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left">
-              <thead>
-                <tr className="border-b border-white/5 font-mono text-[10px] uppercase tracking-wide text-[#475569]">
-                  <th className="px-4 py-2.5 font-medium">Category</th>
-                  <th className="px-4 py-2.5 font-medium">Description</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Emissions (tCO2e)</th>
-                  <th className="px-4 py-2.5 text-right font-medium">% of Scope 3</th>
-                  <th className="px-4 py-2.5 font-medium">Method</th>
-                  <th className="px-4 py-2.5 font-medium">Confidence</th>
-                </tr>
-              </thead>
-              <tbody className="font-mono text-xs">
-                {SCOPE3_ROWS.map((row) => {
-                  const pct = (row.emissions / SCOPE3_SUBTOTAL) * 100;
-                  return (
-                    <tr key={row.cat} className="border-b border-white/5 last:border-0">
-                      <td className="px-4 py-2.5 whitespace-nowrap text-[#F1F5F9]">
-                        <span className="mr-1.5 text-[#475569]">Cat {row.cat}</span>
-                        {row.name}
-                      </td>
-                      <td className="max-w-[280px] px-4 py-2.5 text-[#94A3B8]">{row.description}</td>
-                      <td className="px-4 py-2.5 text-right font-semibold text-[#F1F5F9]">
-                        {row.emissions === 0 ? '—' : fmt(row.emissions)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-[#94A3B8]">
-                        {row.emissions === 0 ? '—' : `${pct.toFixed(1)}%`}
-                      </td>
-                      <td className="px-4 py-2.5 text-[#94A3B8]">{row.method}</td>
-                      <td className="px-4 py-2.5">
-                        <QualityBadge quality={row.confidence} />
-                      </td>
-                    </tr>
-                  );
-                })}
-                <tr className="bg-white/[0.02]">
-                  <td className="px-4 py-2.5 font-semibold text-[#F1F5F9]" colSpan={2}>
-                    Scope 3 total
-                  </td>
-                  <td className="px-4 py-2.5 text-right font-bold text-[#60A5FA]">{fmt(SCOPE3_SUBTOTAL)}</td>
-                  <td className="px-4 py-2.5 text-right text-[#94A3B8]">100.0%</td>
-                  <td className="px-4 py-2.5" colSpan={2} />
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <ScopeTable
+          icon={Globe2}
+          color="#60A5FA"
+          title="Scope 3 — Value chain emissions"
+          rows={SCOPE3_ROWS}
+          subtotal={SCOPE3_SUBTOTAL}
+          totalColor="#60A5FA"
+        />
       )}
 
-      {/* Data quality dashboard */}
       <Card className="p-4">
         <div className="mb-4 flex items-center gap-2">
           <Layers className="h-3.5 w-3.5 text-[#60A5FA]" />
@@ -500,13 +298,13 @@ export default function EmissionsScope() {
             DATA QUALITY DASHBOARD
           </span>
           <span className="ml-auto font-mono text-[10px] text-[#475569]">
-            {fmt(QUALITY_TOTAL)} tCO2e classified across Scope 1–3
+            {fmt(QUALITY_TOTAL)} tCO2e classified across Scope 1–3 · DEMO
           </span>
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {QUALITY_BUCKETS.map((bucket) => {
-            const pct = (bucket.value / QUALITY_TOTAL) * 100;
+            const pct = QUALITY_TOTAL === 0 ? 0 : (bucket.value / QUALITY_TOTAL) * 100;
             const Icon = bucket.tone === 'measured' ? CheckCircle2 : bucket.tone === 'calculated' ? Calculator : HelpCircle;
             return (
               <div key={bucket.label} className="rounded-md border border-white/5 p-3">
@@ -535,7 +333,7 @@ export default function EmissionsScope() {
           <div className="mb-2 flex items-center gap-2">
             <Info className="h-3.5 w-3.5 text-[#60A5FA]" />
             <span className="font-mono text-[11px] font-semibold tracking-wide text-[#F1F5F9]">
-              IMPROVEMENT RECOMMENDATIONS
+              HONESTY
             </span>
           </div>
           <ul className="space-y-2">
@@ -552,9 +350,69 @@ export default function EmissionsScope() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
+function ScopeTable({
+  icon: Icon,
+  color,
+  title,
+  rows,
+  subtotal,
+  totalColor,
+}: {
+  icon: typeof Flame;
+  color: string;
+  title: string;
+  rows: SpineRow[];
+  subtotal: number;
+  totalColor: string;
+}) {
+  return (
+    <Card className="mb-6 overflow-hidden">
+      <SectionHeader
+        icon={Icon}
+        color={color}
+        title={title}
+        subtitle={`${fmt(subtotal)} tCO2e across ${rows.length} DEMO sources`}
+      />
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] text-left">
+          <thead>
+            <tr className="border-b border-white/5 font-mono text-[10px] uppercase tracking-wide text-[#475569]">
+              <th className="px-4 py-2.5 font-medium">Source</th>
+              <th className="px-4 py-2.5 font-medium">Note</th>
+              <th className="px-4 py-2.5 text-right font-medium">Emissions (tCO2e)</th>
+              <th className="px-4 py-2.5 font-medium">Method</th>
+              <th className="px-4 py-2.5 font-medium">Honesty</th>
+              <th className="px-4 py-2.5 font-medium">Data quality</th>
+            </tr>
+          </thead>
+          <tbody className="font-mono text-xs">
+            {rows.map((row) => (
+              <tr key={row.id} className="border-b border-white/5 last:border-0">
+                <td className="px-4 py-2.5 text-[#F1F5F9]">{row.name}</td>
+                <td className="max-w-[280px] px-4 py-2.5 text-[#94A3B8]">{row.description}</td>
+                <td className="px-4 py-2.5 text-right font-semibold text-[#F1F5F9]">{fmt(row.emissions)}</td>
+                <td className="px-4 py-2.5 text-[#94A3B8]">{row.method}</td>
+                <td className="px-4 py-2.5 text-[#94A3B8]">{row.honesty}</td>
+                <td className="px-4 py-2.5">
+                  <QualityBadge quality={row.quality} />
+                </td>
+              </tr>
+            ))}
+            <tr className="bg-white/[0.02]">
+              <td className="px-4 py-2.5 font-semibold text-[#F1F5F9]" colSpan={2}>
+                Scope total
+              </td>
+              <td className="px-4 py-2.5 text-right font-bold" style={{ color: totalColor }}>
+                {fmt(subtotal)}
+              </td>
+              <td className="px-4 py-2.5" colSpan={3} />
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
 
 function SectionHeader({
   icon: Icon,
@@ -577,30 +435,6 @@ function SectionHeader({
       </div>
       <span className="font-mono text-xs font-semibold tracking-wide text-[#F1F5F9]">{title}</span>
       <span className="ml-auto font-mono text-[10px] text-[#475569]">{subtitle}</span>
-    </div>
-  );
-}
-
-function MethodRow({
-  label,
-  factor,
-  value,
-  color,
-}: {
-  label: string;
-  factor: string;
-  value: number;
-  color: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-2 rounded bg-white/[0.02] px-2.5 py-2">
-      <div>
-        <p className="font-mono text-[11px] font-medium text-[#F1F5F9]">{label}</p>
-        <p className="font-mono text-[10px] text-[#475569]">{factor}</p>
-      </div>
-      <p className="font-mono text-sm font-bold" style={{ color }}>
-        {fmt(value)} tCO2e
-      </p>
     </div>
   );
 }
