@@ -94,7 +94,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 export class PrimeService {
   /** Intake persistence. Every public method takes TenantContext — never a raw org id from the body. */
-  constructor(private readonly pool: Pool) {}
+  constructor(private readonly pool: Pool) { }
 
   async startOpportunity(tenant: TenantContext, input: StartOpportunityInput): Promise<SessionEnvelope> {
     const plan = planMaterialOpportunity(input);
@@ -134,7 +134,7 @@ export class PrimeService {
           input.materialBatch.quantityKg,
           input.materialBatch.facilityName ?? null,
           input.materialBatch.availableFrom ?? null,
-          tenant.actor.actorId,
+          tenant.actorId,
         ],
       );
 
@@ -167,15 +167,16 @@ export class PrimeService {
           plan.budget.maxOutputTokens,
           plan.budget.maxEstimatedCostDkk,
           plan.budget.maxEstimatedGco2e,
-          tenant.actor.actorId,
+          tenant.actorId,
         ],
       );
 
       await insertAuditEvent(client, {
         organizationId: tenant.organizationId,
+        ...auditContext(tenant),
         sessionId,
         actorType: 'USER',
-        actorId: tenant.actor.actorId,
+        actorId: tenant.actorId,
         eventType: 'SESSION_CREATED',
         previousState: null,
         nextState: 'QUEUED',
@@ -210,6 +211,7 @@ export class PrimeService {
         );
         await insertAuditEvent(client, {
           organizationId: tenant.organizationId,
+          ...auditContext(tenant),
           sessionId,
           taskId,
           actorType: 'SYSTEM',
@@ -228,6 +230,7 @@ export class PrimeService {
 
       await this.transitionSession(client, {
         organizationId: tenant.organizationId,
+        ...auditContext(tenant),
         sessionId,
         from: 'QUEUED',
         to: 'RUNNING',
@@ -374,6 +377,7 @@ export class PrimeService {
       );
       await insertAuditEvent(client, {
         organizationId: tenant.organizationId,
+        ...auditContext(tenant),
         sessionId,
         taskId: task.id,
         actorType: 'WORKER',
@@ -402,6 +406,7 @@ export class PrimeService {
         );
         await insertAuditEvent(client, {
           organizationId: tenant.organizationId,
+          ...auditContext(tenant),
           sessionId,
           taskId: task.id,
           actorType: 'WORKER',
@@ -414,6 +419,7 @@ export class PrimeService {
         });
         await this.transitionSession(client, {
           organizationId: tenant.organizationId,
+          ...auditContext(tenant),
           sessionId,
           from: session.state,
           to: 'BUDGET_STOPPED',
@@ -464,6 +470,7 @@ export class PrimeService {
       );
       await insertAuditEvent(client, {
         organizationId: tenant.organizationId,
+        ...auditContext(tenant),
         sessionId,
         taskId: task.id,
         actorType: 'WORKER',
@@ -527,6 +534,7 @@ export class PrimeService {
     if (failed.length > 0) {
       await this.transitionSession(client, {
         organizationId: tenant.organizationId,
+        ...auditContext(tenant),
         sessionId: session.id,
         from: session.state,
         to: 'FAILED',
@@ -544,6 +552,7 @@ export class PrimeService {
       if (session.state !== 'RUNNING' && session.state !== 'WAITING_FOR_DEPENDENCY') {
         await this.transitionSession(client, {
           organizationId: tenant.organizationId,
+          ...auditContext(tenant),
           sessionId: session.id,
           from: session.state,
           to: 'RUNNING',
@@ -569,6 +578,7 @@ export class PrimeService {
     const next: SessionState = evidenceMissing ? 'WAITING_FOR_DEPENDENCY' : 'COMPLETED';
     await this.transitionSession(client, {
       organizationId: tenant.organizationId,
+      ...auditContext(tenant),
       sessionId: session.id,
       from: session.state,
       to: next,
@@ -587,6 +597,8 @@ export class PrimeService {
       to: SessionState;
       actorType: 'USER' | 'SYSTEM' | 'WORKER';
       actorId: string;
+      authMode: TenantContext['authMode'];
+      correlationId: string;
       metadata?: Record<string, unknown>;
     },
   ): Promise<void> {
@@ -605,6 +617,8 @@ export class PrimeService {
       sessionId: args.sessionId,
       actorType: args.actorType,
       actorId: args.actorId,
+      authMode: args.authMode,
+      correlationId: args.correlationId,
       eventType: 'SESSION_STATE_CHANGED',
       previousState: args.from,
       nextState: args.to,
@@ -667,6 +681,13 @@ export class PrimeService {
       nextRecommendedAction: nextAction(session.state, reasonCodes, tasks),
     };
   }
+}
+
+function auditContext(tenant: TenantContext): {
+  authMode: TenantContext['authMode'];
+  correlationId: string;
+} {
+  return { authMode: tenant.authMode, correlationId: tenant.correlationId };
 }
 
 function collectReasonCodes(

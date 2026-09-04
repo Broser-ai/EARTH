@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { POLICY_VERSION, type ActorType } from './types.js';
+import type { AuthMode } from '../auth/types.js';
 
 export function digest(value: unknown): string {
   return createHash('sha256').update(stableStringify(value)).digest('hex');
@@ -31,6 +32,8 @@ export interface AuditInsert {
   taskId?: string | null;
   actorType: ActorType;
   actorId: string;
+  authMode?: AuthMode;
+  correlationId?: string;
   eventType: string;
   previousState?: string | null;
   nextState?: string | null;
@@ -44,12 +47,12 @@ export async function insertAuditEvent(client: PoolClient, event: AuditInsert): 
   await client.query(
     `INSERT INTO audit_events (
       id, organization_id, session_id, task_id, actor_type, actor_id,
-      event_type, previous_state, next_state, policy_version,
+      event_type, previous_state, next_state, policy_version, auth_mode, correlation_id,
       input_digest, output_digest, metadata_json
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
-      $7, $8, $9, $10,
-      $11, $12, $13::jsonb
+      $7, $8, $9, $10, $11, $12,
+      $13, $14, $15::jsonb
     )`,
     [
       id,
@@ -62,6 +65,8 @@ export async function insertAuditEvent(client: PoolClient, event: AuditInsert): 
       event.previousState ?? null,
       event.nextState ?? null,
       POLICY_VERSION,
+      event.authMode ?? null,
+      event.correlationId ?? null,
       event.input === undefined ? null : digest(event.input),
       event.output === undefined ? null : digest(event.output),
       JSON.stringify(event.metadata ?? {}),

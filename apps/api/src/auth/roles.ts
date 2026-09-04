@@ -1,6 +1,6 @@
 import { assertNever, type UserRole } from '../contracts.js';
 import { RoleForbiddenError } from './errors.js';
-import type { AuthenticatedActor } from './types.js';
+import type { TenantContext } from './types.js';
 
 export function canReadIntake(role: UserRole): boolean {
   switch (role) {
@@ -29,18 +29,30 @@ export function canWriteIntake(role: UserRole): boolean {
   }
 }
 
-export function assertCanReadIntake(actor: AuthenticatedActor): void {
-  if (!canReadIntake(actor.role)) {
-    throw new RoleForbiddenError(
-      `DEVELOPMENT ONLY: role ${actor.role} cannot read intake. Role is loaded from Postgres.`,
-    );
+export function requireAuthenticatedActor(context: TenantContext | undefined): asserts context is TenantContext {
+  if (!context) {
+    throw new RoleForbiddenError('Authentication is required.');
   }
 }
 
-export function assertCanWriteIntake(actor: AuthenticatedActor): void {
-  if (!canWriteIntake(actor.role)) {
-    throw new RoleForbiddenError(
-      `DEVELOPMENT ONLY: role ${actor.role} cannot mutate intake. Role is loaded from Postgres, not from x-earth-user-role.`,
-    );
+export function requireRole(context: TenantContext, roles: readonly UserRole[]): void {
+  if (!roles.includes(context.role)) {
+    throw new RoleForbiddenError('You do not have permission to perform this action.');
   }
+}
+
+export function canStartMaterialOpportunity(context: TenantContext): void {
+  requireRole(context, ['OWNER', 'ESG_LEAD', 'OPERATIONS']);
+}
+
+export function canReadSession(context: TenantContext): void {
+  requireRole(context, ['OWNER', 'ESG_LEAD', 'OPERATIONS', 'REVIEWER', 'VIEWER']);
+}
+
+export function canRunDevelopmentTask(context: TenantContext): void {
+  requireRole(context, ['OWNER', 'ESG_LEAD', 'OPERATIONS']);
+}
+
+export function canReadAuditEvents(context: TenantContext): void {
+  requireRole(context, ['OWNER', 'ESG_LEAD', 'OPERATIONS', 'REVIEWER']);
 }

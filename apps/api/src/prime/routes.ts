@@ -2,7 +2,12 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
 import { z } from 'zod';
 import { AuthError } from '../auth/errors.js';
-import { assertCanReadIntake, assertCanWriteIntake } from '../auth/roles.js';
+import {
+  canReadAuditEvents,
+  canReadSession,
+  canRunDevelopmentTask,
+  canStartMaterialOpportunity,
+} from '../auth/roles.js';
 import { modeEnvelope, modeError } from '../http.js';
 import { PrimeService } from './service.js';
 import { PolicyError, type DataClassification, type StartOpportunityInput } from './types.js';
@@ -33,7 +38,7 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
 
   app.post('/v1/material-opportunities/start', async (request, reply) => {
     try {
-      assertCanWriteIntake(request.earthTenant.actor);
+      canStartMaterialOpportunity(request.earthTenant);
     } catch (error) {
       return sendAuthError(request, reply, error);
     }
@@ -55,7 +60,7 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
 
   app.get('/v1/sessions/:sessionId', async (request, reply) => {
     try {
-      assertCanReadIntake(request.earthTenant.actor);
+      canReadSession(request.earthTenant);
     } catch (error) {
       return sendAuthError(request, reply, error);
     }
@@ -72,7 +77,7 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
 
   app.get('/v1/sessions/:sessionId/audit-events', async (request, reply) => {
     try {
-      assertCanReadIntake(request.earthTenant.actor);
+      canReadAuditEvents(request.earthTenant);
     } catch (error) {
       return sendAuthError(request, reply, error);
     }
@@ -89,7 +94,7 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
 
   app.post('/v1/sessions/:sessionId/run-next', async (request, reply) => {
     try {
-      assertCanWriteIntake(request.earthTenant.actor);
+      canRunDevelopmentTask(request.earthTenant);
     } catch (error) {
       return sendAuthError(request, reply, error);
     }
