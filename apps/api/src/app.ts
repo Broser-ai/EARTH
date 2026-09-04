@@ -38,7 +38,6 @@ export async function buildApp(pool?: Pool, options: BuildAppOptions = {}): Prom
   const config = options.config ?? loadConfig();
   const app = Fastify({
     logger: loggerOption(config),
-    disableRequestLogging: config.nodeEnv === 'test',
   });
 
   app.decorate('earthAuthMode', AUTH_MODE_DEVELOPMENT);
