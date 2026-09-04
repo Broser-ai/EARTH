@@ -86,6 +86,12 @@ export async function createPool(): Promise<Pool> {
      ON CONFLICT (id) DO NOTHING`,
     [OTHER_USER, OTHER_ORG],
   );
+  await pool.query(
+    `INSERT INTO organization_memberships (id, organization_id, user_id, role, status)
+     VALUES (gen_random_uuid(), $1, $2, 'OWNER', 'ACTIVE')
+     ON CONFLICT (organization_id, user_id) DO UPDATE SET status = 'ACTIVE'`,
+    [OTHER_ORG, OTHER_USER],
+  );
   return pool;
 }
 
