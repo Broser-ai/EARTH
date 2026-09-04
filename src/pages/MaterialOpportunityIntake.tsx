@@ -41,9 +41,9 @@ function formatOutput(task: TaskView): string {
 
 export default function MaterialOpportunityIntake() {
   const [idempotencyKey, setIdempotencyKey] = useState(DEFAULT_START_BODY.idempotencyKey);
-  const [materialClass, setMaterialClass] = useState(DEFAULT_START_BODY.materialBatch.materialClass);
-  const [quantityKg, setQuantityKg] = useState(String(DEFAULT_START_BODY.materialBatch.quantityKg));
-  const [facilityName, setFacilityName] = useState(DEFAULT_START_BODY.materialBatch.facilityName);
+  const [materialClass, setMaterialClass] = useState(DEFAULT_START_BODY.materialBatch.materialClass ?? '');
+  const [quantityKg, setQuantityKg] = useState(String(DEFAULT_START_BODY.materialBatch.quantityKg ?? ''));
+  const [facilityName, setFacilityName] = useState(DEFAULT_START_BODY.materialBatch.facilityName ?? '');
   const [disposalCostDkk, setDisposalCostDkk] = useState(
     String(DEFAULT_START_BODY.baseline.disposalCostDkk),
   );
@@ -119,8 +119,10 @@ export default function MaterialOpportunityIntake() {
         <div>
           <h1 className="text-base font-medium text-text-primary">Material Opportunity Intake</h1>
           <p className="mt-0.5 text-[11px] text-text-secondary">
-            First durable workflow. Posts to the local Fastify API with DEVELOPMENT identity
-            headers. Deterministic stubs only — no LLM, recycler, ERP, SKAT, or SAP.
+            First durable workflow. Posts to <span className="font-mono">POST /v1/material-opportunities/start</span>{' '}
+            with DEVELOPMENT identity headers. Envelope mode is{' '}
+            <span className="font-mono">DEVELOPMENT_ONLY</span>. Deterministic stubs only — no LLM,
+            recycler, ERP, SKAT, or SAP.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -330,5 +332,8 @@ function describeFailure(caught: unknown): string {
   if (caught instanceof TypeError) {
     return 'API not reachable. Start `npm run api:dev` on :3001 (Vite proxies /v1 in npm run dev).';
   }
-  return caught instanceof Error ? caught.message : 'unknown error';
+  if (caught instanceof Error) {
+    return caught.message;
+  }
+  return 'unknown error';
 }
