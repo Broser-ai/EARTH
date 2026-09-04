@@ -6,8 +6,11 @@ Before accepting Cursor changes:
 - Inspect `git diff main...HEAD`.
 - Verify changed files match assigned scope.
 - Run typecheck, lint, format check, tests, builds, and `npm audit`.
+- Run `EARTH: Partial verification (no Docker)` when Docker is unavailable; record database, API runtime, and full-verification checks as `BLOCKED_BY_DOCKER`.
+- Run `EARTH: Full verification (Docker required)` only after `EARTH: Check Docker and Postgres prerequisites` passes.
 - Run migrations against local PostgreSQL.
-- Check `/health` and `/v1/info`.
+- Run `EARTH: API smoke check` against a running API and `EARTH: Frontend smoke check` against a running Vite app.
+- Check `/health` and `/v1/info`; verify unsupported capability flags remain false.
 - Test intake idempotency.
 - Test cross-tenant access denial.
 - Check audit events are written.

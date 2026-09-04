@@ -107,15 +107,20 @@ function tinkerStatus(
   role: string,
   note: string,
 ): AdapterHudStatus {
-  const live = trainer.mode() !== 'stub';
   const last = trainer.lastSubmitted();
+  const awaitingWorker = trainer.mode() === 'credentialed';
   return {
     id: 'tinker',
     product: 'Tinker',
     role,
-    link: live ? 'connected' : 'stub',
+    // Credentials only queue an intent; this browser runtime has no service health check.
+    link: 'stub',
     hasCredential,
     trained: last?.status === 'completed' && Boolean(last.weightsUri),
-    detail: last ? `last job ${last.id} ${last.status}` : note,
+    detail: last
+      ? `last job ${last.id} ${last.status} — NOT_CONNECTED`
+      : awaitingWorker
+        ? 'credentials present; Python ServiceClient worker is NOT_CONFIGURED'
+        : note,
   };
 }

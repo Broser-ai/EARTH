@@ -24,7 +24,15 @@ The API is available on `http://localhost:3001`; the SPA is available on `http:/
 
 ## Validation
 
-Run the full quality set in sequence with the `EARTH: Full verification` task, or run:
+Run `EARTH: Partial verification (no Docker)` for checks that do not need PostgreSQL. It runs typechecks, lint, format check, SPA tests, builds, and audit. It does not claim API database tests, migrations, or runtime smoke checks passed.
+
+Run `EARTH: Check Docker and Postgres prerequisites` before Docker-dependent work. It fails with this message when Docker Desktop is unavailable or stopped:
+
+```
+Docker is unavailable. PostgreSQL, migrations, API database tests and runtime smoke checks are blocked. Install/start Docker Desktop, then rerun.
+```
+
+When it passes, run `EARTH: Full verification (Docker required)`. It first checks Docker and PostgreSQL health, then runs migrations, API tests, SPA tests, typechecks, lint, format check, builds, and audit. The equivalent quality commands are:
 
 ```sh
 npm run typecheck
@@ -37,6 +45,8 @@ npm run build
 npm run api:build
 npm audit
 ```
+
+For a development-safe runtime check, start the API with `npm run api:dev` and run `EARTH: API smoke check`. It fails if `/health` or `/v1/info` is unreachable and rejects an info response that marks authentication, NanoChat, reinforcement learning, blockchain, recycler network, digital product passports, or external APIs active. Start Vite with `npm run dev` and run `EARTH: Frontend smoke check`; it verifies port 5180 reachability only, not browser E2E behavior.
 
 Run database migrations before API-flow tests:
 
@@ -103,3 +113,7 @@ SELECT session_id, event_type, created_at FROM audit_events ORDER BY created_at 
 Block a merge when branch/worktree isolation is missing, changes exceed assigned scope, any validation command fails, migrations fail, `/health` or `/v1/info` is dishonest, idempotency fails, cross-tenant access is allowed, audit events are absent, secrets or `VITE_*` server secrets appear, or unqualified forbidden product claims are introduced.
 
 Also block browser or `localStorage` persistence for backend sessions, approvals, audit logs, budgets, tenant context, or policies; any AI/LLM path that can mutate the database or bypass policy; and stubs without an explicit `DEMO`, `DEVELOPMENT_ONLY`, `NOT_CONFIGURED`, `NOT_CONNECTED`, `NOT VERIFIED`, `ESTIMATED`, or `INPUT_UNVERIFIED` marker. Consult `docs/CURSOR_REVIEW_CHECKLIST.md` for the mandatory full list.
+
+## Tinker Status
+
+Tinker is `STUB` unless a future server-side implementation has explicit configuration and a successful health check. A `TINKER_API_KEY`, credentialed adapter object, or queued intent is not a connection and must not be displayed as `connected`.

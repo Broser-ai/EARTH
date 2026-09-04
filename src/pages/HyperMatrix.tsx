@@ -69,7 +69,7 @@ const initialTech: TechTrend[] = [
   { name: "Agentic Software", velocity: 2.8, breakthrough: "Q2 2027" },
   { name: "FHE Compute", velocity: 1.4, breakthrough: "Q4 2028" },
   { name: "World Models", velocity: 3.2, breakthrough: "Q1 2027" },
-  { name: "Post-Quantum Crypto", velocity: 0.9, breakthrough: "Q3 2029" },
+  { name: "Post-Quantum Crypto (SIMULATION)", velocity: 0.9, breakthrough: "Q3 2029" },
   { name: "Multi-Agent RL", velocity: 2.1, breakthrough: "Q3 2027" },
 ];
 

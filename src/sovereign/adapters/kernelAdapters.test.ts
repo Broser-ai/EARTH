@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createEarthRuntime } from '../runtime/createEarthRuntime.ts';
 import { InklingPolicy } from '../prime/inkling/InklingPolicy.ts';
+import { CredentialedTinkerClient } from '../prime/tinker/client.ts';
 import { SAgent } from '../agents/SAgent.ts';
 import { EarthBus } from '../bus/EarthBus.ts';
 import { CompassGate } from '../compass/CompassGate.ts';
@@ -24,6 +25,16 @@ describe('kernel adapters in the Prime → H → S → COMPASS equation', () => 
     expect(status.inkling?.trained).toBe(false);
     expect(status.tinker?.link).toBe('stub');
     expect(runtime.inkling.trained()).toBe(false);
+  });
+
+  it('does not report a credentialed but unchecked Tinker intent as connected', async () => {
+    const runtime = createEarthRuntime({ tinkerClient: new CredentialedTinkerClient() });
+
+    expect(runtime.adapterStatus().find((row) => row.id === 'tinker')?.link).toBe('stub');
+    const job = await runtime.tinker.submit([]);
+
+    expect(job.status).toBe('queued');
+    expect(runtime.adapterStatus().find((row) => row.id === 'tinker')?.link).toBe('stub');
   });
 
   it('runs vision.infer through the swarm and still records an Inkling-hooked trajectory', async () => {
