@@ -13,6 +13,7 @@ export default defineConfig({
   appType: 'spa',
   optimizeDeps: {
     exclude: ['vitest'],
+    include: ['@langchain/langgraph', '@langchain/core'],
   },
   server: {
     host: '0.0.0.0',

@@ -9,8 +9,8 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
+import GraphHud from '../components/GraphHud.tsx';
 import { useEarthRuntime } from '../sovereign/runtime/EarthRuntimeContext.tsx';
-import { WARGAME_ALTERNATE, WARGAME_BLOCKED } from '../sovereign/missions/catalog.ts';
 import { issueDid } from '../sovereign/identity/did.ts';
 import type { CompassVerdict } from '../sovereign/types.ts';
 
@@ -44,51 +44,41 @@ export default function WarGame() {
     setDid(null);
     runtime.boot();
 
-    const blocked = await runtime.compass.evaluate(WARGAME_BLOCKED, runtime.ctx);
+    const blockedOutcome = await runtime.runMissionById('mission-eudr-block');
+    const blocked = runtime.graphState()?.verdict ?? null;
     setBlockedVerdict(blocked);
-    runtime.bus.emit({
-      type: 'compass.verdict',
-      source: 'war-game',
-      message: blocked.allow ? 'unexpected allow' : 'COMPASS BLOCK on SUP-BR-001',
-      payload: { actionId: WARGAME_BLOCKED.id, allow: blocked.allow, digest: blocked.digest },
-    });
     setRows([
       {
         id: 'scan',
-        label: 'HORIZON SCAN',
-        title: 'EUDR shock',
-        detail: 'Deforestation index 0.082 on SUP-BR-001',
+        label: 'LANGGRAPH',
+        title: 'EUDR shock mission invoked',
+        detail: `node ${runtime.graphState()?.node ?? '—'} · status ${blockedOutcome.status}`,
         tone: 'crisis',
       },
       {
         id: 'block',
         label: 'COMPASS BLOCK',
-        title: blocked.allow ? 'Unexpected allow' : 'Batch MB-2026-0451 refused',
-        detail: blocked.conflicts[0] ?? 'floor breach',
+        title: blocked?.allow ? 'Unexpected allow' : 'Batch MB-2026-0451 refused',
+        detail: blocked?.conflicts[0] ?? 'floor breach',
         tone: 'crisis',
       },
     ]);
 
-    const allowed = await runtime.compass.evaluate(WARGAME_ALTERNATE, runtime.ctx);
+    const allowedOutcome = await runtime.runMissionById('mission-de-alternate');
+    const allowed = runtime.graphState()?.verdict ?? null;
     setAllowedVerdict(allowed);
-    runtime.bus.emit({
-      type: 'compass.verdict',
-      source: 'war-game',
-      message: allowed.allow ? 'COMPASS ALLOW SUP-DE-044' : 'alternate blocked',
-      payload: { actionId: WARGAME_ALTERNATE.id, allow: allowed.allow, digest: allowed.digest },
-    });
 
     const next: TimelineRow[] = [
       {
         id: 'alt',
         label: 'ALTERNATE',
-        title: 'SUP-DE-044 proposed',
-        detail: '15.2t rPET, labor fairness 0.86, EUDR 0.01',
+        title: 'SUP-DE-044 via LangGraph',
+        detail: `status ${allowedOutcome.status} · 15.2t rPET`,
         tone: 'warning',
       },
     ];
 
-    if (allowed.allow) {
+    if (allowed?.allow) {
       const entry = await runtime.ledger.append({
         kind: 'wargame.settlement',
         supplier: 'SUP-DE-044',
@@ -140,12 +130,14 @@ export default function WarGame() {
               SCENARIO: EUDR SHOCK
             </span>
             <p className="mt-1 text-sm text-text-secondary">
-              COMPASS evaluates the blocked Brazilian batch, then the German alternate, against the
-              live gate — not a hardcoded score.
+              LangGraph runs mission-eudr-block then mission-de-alternate. COMPASS still denies the
+              Brazilian batch even if Prime selected it.
             </p>
           </div>
         </div>
       </div>
+
+      <GraphHud graph={runtime.graphState()} policy={runtime.policyStats()} />
 
       <div className="flex items-center gap-3">
         <button
@@ -177,7 +169,7 @@ export default function WarGame() {
       <div className="min-h-[120px] rounded-lg border border-white/5 bg-white/[0.03] p-4 backdrop-blur">
         {rows.length === 0 && (
           <div className="flex h-24 items-center justify-center font-mono text-xs text-text-muted">
-            AWAITING TRIGGER — COMPASS idle
+            AWAITING TRIGGER — LangGraph idle
           </div>
         )}
         <div className="flex flex-col gap-2">

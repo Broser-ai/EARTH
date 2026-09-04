@@ -15,6 +15,10 @@ export class InklingPolicy implements RlPolicy {
     return this.weights !== null;
   }
 
+  get trainedLabel(): 'untrained' | 'inkling' {
+    return this.weights ? 'inkling' : 'untrained';
+  }
+
   get liveInference(): boolean {
     return this.weights?.liveInference === true;
   }
@@ -49,6 +53,7 @@ export class InklingPolicy implements RlPolicy {
       missionId: next.id,
       policyKind: 'rl',
       trained: true,
+      trainedLabel: 'inkling',
       reason: live
         ? `inkling live weights ${this.weights.uri} selected ${next.id}`
         : `inkling fixture weights ${this.weights.uri} selected ${next.id} (not live inference)`,

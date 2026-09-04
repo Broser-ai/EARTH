@@ -22,6 +22,8 @@
     "db:migrate": "npm --prefix apps/api run migrate"
   },
   "dependencies": {
+    "@langchain/core": "^1.2.9",
+    "@langchain/langgraph": "^1.4.13",
     "clsx": "^2.1.1",
     "lucide-react": "^0.511.0",
     "motion": "^12.12.1",

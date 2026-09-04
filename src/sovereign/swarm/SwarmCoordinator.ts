@@ -13,9 +13,9 @@ export interface SwarmCoordinatorOptions {
 
 export class SwarmCoordinator {
   readonly tree: CapabilityTree;
+  readonly harness: HAgent;
   private readonly bus: EarthBus;
   private readonly compass: CompassGate;
-  private readonly harness: HAgent;
 
   constructor(options: SwarmCoordinatorOptions) {
     this.bus = options.bus;

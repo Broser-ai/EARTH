@@ -315,7 +315,7 @@ export const EARTH_ROUTES: readonly EarthRoute[] = [
     band: 'MISSION',
     callsign: 'SWARM',
     label: 'Dev swarm',
-    blurb: 'In-tab Prime → H-Agent → S-Agents — not a durable session',
+    blurb: 'In-tab LangGraph Prime → H → COMPASS → S — not a durable session',
   },
   {
     path: '/mission/aegis',
@@ -369,7 +369,7 @@ export const EARTH_ROUTES: readonly EarthRoute[] = [
     band: 'MISSION',
     callsign: 'PRIME',
     label: 'Prime policy',
-    blurb: 'Inkling + Tinker stubs — untrained until weights exist',
+    blurb: 'Session-rl Prime + Inkling/Tinker stubs — in-tab LangGraph, not hosted RL',
   },
   {
     path: '/uplink',

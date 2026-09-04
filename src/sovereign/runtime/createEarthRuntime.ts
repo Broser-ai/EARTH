@@ -10,6 +10,7 @@ import { InklingBrain } from '../prime/inkling/InklingBrain.ts';
 import { InklingPolicy } from '../prime/inkling/InklingPolicy.ts';
 import { EARTH_DEFAULT_LESSON, type InklingWeights } from '../prime/inkling/types.ts';
 import { PrimeAgent } from '../prime/PrimeAgent.ts';
+import { SessionRlPolicy } from '../prime/SessionRlPolicy.ts';
 import type { RlPolicy } from '../prime/UntrainedRlPolicy.ts';
 import {
   CredentialedTinkerClient,
@@ -30,6 +31,8 @@ export interface EarthRuntimeOptions {
   tinkerClient?: TinkerClient;
   inklingWeights?: InklingWeights | null;
   attachDefaultLesson?: boolean;
+  persistSessionRl?: boolean;
+  rng?: () => number;
 }
 
 export function createEarthRuntime(options: EarthRuntimeOptions = {}): EarthRuntime {
@@ -47,9 +50,17 @@ export function createEarthRuntime(options: EarthRuntimeOptions = {}): EarthRunt
   if (options.attachDefaultLesson !== false) {
     inkling.attachLesson(EARTH_DEFAULT_LESSON);
   }
+  const sessionRl = new SessionRlPolicy({
+    catalogIds: MISSION_CATALOG.map((mission) => mission.id),
+    persist: options.persistSessionRl ?? typeof window !== 'undefined',
+    rng: options.rng,
+  });
+  const acting =
+    options.policy ?? (inkling.policy.trained ? inkling.policy : sessionRl);
   const prime = new PrimeAgent({
-    policy: options.policy ?? inkling.policy,
+    policy: acting,
     fallback: new DeterministicFallbackPolicy(),
+    learner: sessionRl,
   });
   const tinkerClient =
     options.tinkerClient ??
