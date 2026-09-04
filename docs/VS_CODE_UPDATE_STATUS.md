@@ -1,14 +1,16 @@
 # VS Code Guardian Update Status
 
-Current branch: `chore/vscode-engineering-guardian`. Update starting SHA: `69c6a8320d052c837be32252f34ad9c81e23d0fa` (`chore(vscode): add EARTH engineering guardian workspace`). The final v0.2 commit SHA is reported by `git rev-parse HEAD` after this update is committed.
+Current branch: `chore/vscode-engineering-guardian`. v0.3 starting SHA: `a4ed735f77f7a7426d97c0f0f9cc7b67e9e9c408` (`chore(vscode): improve EARTH verification diagnostics`).
 
 ## What VS Code Can Verify Without Docker
 
 Run `EARTH: Partial verification (no Docker)` to run SPA/API typechecks, lint, format check, SPA tests, SPA/API builds, and `npm audit`. `EARTH: API smoke check` and `EARTH: Frontend smoke check` separately verify running local endpoints; they fail with start instructions when their process is absent.
 
+v0.3 partial verification passed: `git diff --check`, SPA/API typechecks, lint, format check, all 84 SPA tests, SPA/API builds, and `npm audit` (0 vulnerabilities). The secret-pattern review found no committed credential values. The unsupported-claim review found only `Post-Quantum Crypto (SIMULATION)`.
+
 ## Docker-Blocked Work
 
-Without Docker Desktop running and available on `PATH`, PostgreSQL, migrations, database-dependent API tests, API runtime smoke checks, and `EARTH: Full verification (Docker required)` are `BLOCKED_BY_DOCKER`. Install and start Docker Desktop, then run `EARTH: Check Docker and Postgres prerequisites` followed by `EARTH: Full verification (Docker required)`.
+Docker is `BLOCKED_BY_DOCKER`: `docker` is unavailable on `PATH`, so `docker --version`, `docker compose version`, and `docker info` cannot run. PostgreSQL, migrations, database-dependent API tests, API runtime smoke checks, intake-flow verification, and `EARTH: Full verification (Docker required)` are not run. Install and start Docker Desktop as described in `docs/DOCKER_SETUP.md`, then run `EARTH: Check Docker and Postgres prerequisites` followed by `EARTH: Full verification (Docker required)`.
 
 ## Tinker Verdict
 

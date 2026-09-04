@@ -32,6 +32,8 @@ Run `EARTH: Check Docker and Postgres prerequisites` before Docker-dependent wor
 Docker is unavailable. PostgreSQL, migrations, API database tests and runtime smoke checks are blocked. Install/start Docker Desktop, then rerun.
 ```
 
+For macOS installation and startup steps, see `docs/DOCKER_SETUP.md`.
+
 When it passes, run `EARTH: Full verification (Docker required)`. It first checks Docker and PostgreSQL health, then runs migrations, API tests, SPA tests, typechecks, lint, format check, builds, and audit. The equivalent quality commands are:
 
 ```sh
