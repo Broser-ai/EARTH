@@ -13,6 +13,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5180,
+    strictPort: true,
     proxy: {
       '/health': { target: 'http://127.0.0.1:3001', changeOrigin: true },
       '/v1': { target: 'http://127.0.0.1:3001', changeOrigin: true },
@@ -21,5 +22,6 @@ export default defineConfig({
   preview: {
     host: '0.0.0.0',
     port: 5180,
+    strictPort: true,
   },
 });
