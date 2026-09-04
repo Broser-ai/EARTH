@@ -1,7 +1,9 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
 import { z } from 'zod';
-import { developmentEnvelope, developmentError } from '../http.js';
+import { AuthError } from '../auth/errors.js';
+import { assertCanReadIntake, assertCanWriteIntake } from '../auth/roles.js';
+import { modeEnvelope, modeError } from '../http.js';
 import { PrimeService } from './service.js';
 import { PolicyError, type DataClassification, type StartOpportunityInput } from './types.js';
 
@@ -23,78 +25,105 @@ const startBodySchema = z.object({
     extractionRequested: z.boolean(),
   }),
   dataClassification: z.enum(['INTERNAL', 'CONFIDENTIAL', 'RESTRICTED']),
+  organizationId: z.string().optional(),
 });
 
 export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
   const service = new PrimeService(pool);
 
   app.post('/v1/material-opportunities/start', async (request, reply) => {
+    try {
+      assertCanWriteIntake(request.earthTenant.actor);
+    } catch (error) {
+      return sendAuthError(request, reply, error);
+    }
+
     const parsed = startBodySchema.safeParse(request.body);
     if (!parsed.success) {
       const mapped = mapZodError(parsed.error);
-      return reply.status(400).send(developmentError(mapped.code, mapped.message));
+      return reply.status(400).send(modeError(request.server.earthAuthMode, mapped.code, mapped.message));
     }
 
     const input = toStartInput(parsed.data);
     try {
-      const envelope = await service.startOpportunity(request.earthIdentity, input);
-      return reply.status(201).send(developmentEnvelope(envelope));
+      const envelope = await service.startOpportunity(request.earthTenant, input);
+      return reply.status(201).send(modeEnvelope(request.server.earthAuthMode, envelope));
     } catch (error) {
-      return sendPrimeError(reply, error);
+      return sendPrimeError(request, reply, error);
     }
   });
 
   app.get('/v1/sessions/:sessionId', async (request, reply) => {
+    try {
+      assertCanReadIntake(request.earthTenant.actor);
+    } catch (error) {
+      return sendAuthError(request, reply, error);
+    }
+
     const sessionId = (request.params as { sessionId: string }).sessionId;
-    const envelope = await service.getSession(request.earthIdentity.organizationId, sessionId);
+    const envelope = await service.getSession(request.earthTenant, sessionId);
     if (!envelope) {
       return reply
         .status(404)
-        .send(developmentError('SESSION_NOT_FOUND', 'session not found for this organization'));
+        .send(modeError(request.server.earthAuthMode, 'SESSION_NOT_FOUND', 'session not found for this organization'));
     }
-    return reply.send(developmentEnvelope(envelope));
+    return reply.send(modeEnvelope(request.server.earthAuthMode, envelope));
   });
 
   app.get('/v1/sessions/:sessionId/audit-events', async (request, reply) => {
+    try {
+      assertCanReadIntake(request.earthTenant.actor);
+    } catch (error) {
+      return sendAuthError(request, reply, error);
+    }
+
     const sessionId = (request.params as { sessionId: string }).sessionId;
-    const events = await service.listAuditEvents(request.earthIdentity.organizationId, sessionId);
+    const events = await service.listAuditEvents(request.earthTenant, sessionId);
     if (!events) {
       return reply
         .status(404)
-        .send(developmentError('SESSION_NOT_FOUND', 'session not found for this organization'));
+        .send(modeError(request.server.earthAuthMode, 'SESSION_NOT_FOUND', 'session not found for this organization'));
     }
-    return reply.send(developmentEnvelope({ events }));
+    return reply.send(modeEnvelope(request.server.earthAuthMode, { events }));
   });
 
   app.post('/v1/sessions/:sessionId/run-next', async (request, reply) => {
+    try {
+      assertCanWriteIntake(request.earthTenant.actor);
+    } catch (error) {
+      return sendAuthError(request, reply, error);
+    }
+
     const sessionId = (request.params as { sessionId: string }).sessionId;
     try {
-      const result = await service.runNext(request.earthIdentity, sessionId);
+      const result = await service.runNext(request.earthTenant, sessionId);
       if (!result) {
         return reply
           .status(404)
-          .send(developmentError('SESSION_NOT_FOUND', 'session not found for this organization'));
+          .send(modeError(request.server.earthAuthMode, 'SESSION_NOT_FOUND', 'session not found for this organization'));
       }
-      return reply.send(developmentEnvelope(result));
+      return reply.send(modeEnvelope(request.server.earthAuthMode, result));
     } catch (error) {
-      return sendPrimeError(reply, error);
+      return sendPrimeError(request, reply, error);
     }
   });
 }
 
 function toStartInput(data: z.infer<typeof startBodySchema>): StartOpportunityInput {
+  const { organizationId: _ignoredBodyOrg, ...fields } = data;
+  void _ignoredBodyOrg;
   return {
-    idempotencyKey: data.idempotencyKey,
+    idempotencyKey: fields.idempotencyKey,
     materialBatch: {
-      externalReference: data.materialBatch.externalReference,
-      materialClass: data.materialBatch.materialClass ?? '',
-      quantityKg: data.materialBatch.quantityKg ?? Number.NaN,
-      facilityName: data.materialBatch.facilityName,
-      availableFrom: data.materialBatch.availableFrom,
+      externalReference: fields.materialBatch.externalReference,
+      materialClass: fields.materialBatch.materialClass ?? '',
+      quantityKg: fields.materialBatch.quantityKg ?? Number.NaN,
+      facilityName: fields.materialBatch.facilityName,
+      availableFrom: fields.materialBatch.availableFrom,
     },
-    baseline: data.baseline,
-    evidence: data.evidence,
-    dataClassification: data.dataClassification as DataClassification,
+    baseline: fields.baseline,
+    evidence: fields.evidence,
+    dataClassification: fields.dataClassification as DataClassification,
   };
 }
 
@@ -110,14 +139,23 @@ function mapZodError(error: z.ZodError): { code: string; message: string } {
   return { code: 'VALIDATION_ERROR', message: issue?.message ?? 'invalid request body' };
 }
 
-function sendPrimeError(reply: { status: (code: number) => { send: (body: unknown) => unknown } }, error: unknown) {
+function sendAuthError(request: FastifyRequest, reply: FastifyReply, error: unknown) {
+  if (error instanceof AuthError) {
+    return reply
+      .status(error.status)
+      .send(modeError(request.server.earthAuthMode, error.code, error.message));
+  }
+  return sendPrimeError(request, reply, error);
+}
+
+function sendPrimeError(request: FastifyRequest, reply: FastifyReply, error: unknown) {
   if (error instanceof PolicyError) {
     const status = error.code === 'INVALID_STATE_TRANSITION' ? 409 : 400;
-    return reply.status(status).send(developmentError(error.code, error.message));
+    return reply.status(status).send(modeError(request.server.earthAuthMode, error.code, error.message));
   }
   requestLog(error);
   return reply.status(500).send(
-    developmentError('INTERNAL_ERROR', 'unexpected server error'),
+    modeError(request.server.earthAuthMode, 'INTERNAL_ERROR', 'unexpected server error'),
   );
 }
 

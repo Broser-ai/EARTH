@@ -8,6 +8,7 @@ loadEnv();
 
 export const DEV_ORG = '11111111-1111-1111-1111-111111111111';
 export const DEV_USER = '22222222-2222-2222-2222-222222222222';
+export const DEV_VIEWER = '55555555-5555-5555-5555-555555555555';
 export const OTHER_ORG = '33333333-3333-3333-3333-333333333333';
 export const OTHER_USER = '44444444-4444-4444-4444-444444444444';
 
@@ -22,6 +23,20 @@ export const otherHeaders = {
   'content-type': 'application/json',
   'x-earth-org-id': OTHER_ORG,
   'x-earth-user-id': OTHER_USER,
+  'x-earth-user-role': 'OWNER',
+} as const;
+
+export const viewerHeaders = {
+  'content-type': 'application/json',
+  'x-earth-org-id': DEV_ORG,
+  'x-earth-user-id': DEV_VIEWER,
+  'x-earth-user-role': 'VIEWER',
+} as const;
+
+export const viewerEscalateHeaders = {
+  'content-type': 'application/json',
+  'x-earth-org-id': DEV_ORG,
+  'x-earth-user-id': DEV_VIEWER,
   'x-earth-user-role': 'OWNER',
 } as const;
 

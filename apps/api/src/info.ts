@@ -50,7 +50,7 @@ export function describeIntegration(name: IntegrationName): string {
     case 'materialOpportunityIntake':
       return 'MATERIAL_OPPORTUNITY_INTAKE v0.1 persists sessions, tasks, and audit events';
     case 'authentication':
-      return 'no OIDC or production auth — DEVELOPMENT identity headers only';
+      return 'no OIDC or production auth — DEVELOPMENT identity headers behind TenantContext / AuthProvider.getActor only';
     case 'primeRuntime':
       return 'PRIME policy v0.1 for MATERIAL_OPPORTUNITY_INTAKE only; no general agent runtime';
     case 'nanoChat':
