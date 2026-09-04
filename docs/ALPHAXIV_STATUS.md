@@ -26,7 +26,7 @@ Cite this file + the SHA. Do not cite SPA KPIs, COMPASS scores, or “SHA-256 le
 | Layer | What it is | Port / bind | What it is not |
 |-------|------------|-------------|----------------|
 | Vite 6 + React 19 + TypeScript SPA (`src/`) | Command-bar mission grid, History URL router, `DEVELOPMENT` / `DEMO` badges. Tenant label: “Hornbach Germany” (fictional DEMO). | **5180** `0.0.0.0`, `strictPort`. Proxies `/v1` and `/health` → `:3001`. | Not a live ESG/ERP/audit product. No OIDC. |
-| Fastify API (`apps/api`, package `earth-api` 0.1.0) | `GET /health`, `GET /v1/info`, Material Opportunity Intake v0.1. Binds `0.0.0.0:$PORT`. TenantContext + DEVELOPMENT `AuthProvider` (not OIDC). | **3001** default | Not production. Identity = DEVELOPMENT headers, not auth. |
+| Fastify API (`apps/api`, package `earth-api` 0.1.0) | `GET /health`, `GET /v1/info`, Material Opportunity Intake v0.1. Binds `0.0.0.0:$PORT`. TenantContext + `AuthProvider` (`DevelopmentHeaderAuthProvider` or `OidcJwtAuthProvider`). `authentication` stays false; `oidcConfigured` is runtime-only. | **3001** default | Not production. Development headers are DEVELOPMENT_ONLY. OIDC JWT validation does not grant org/role from claims. |
 | PostgreSQL | Compose **only** `postgres:16-alpine` (db/user/password `earth`, **5432**). Migrations + DEVELOPMENT seed org/user. | 5432 | No Kafka, Redis, Neo4j, chain node. |
 | In-tab sovereign kernel (`src/sovereign/`) | `EarthRuntime` in the browser tab: EarthBus, CompassGate, H/S swarm, LangGraph web FSM, Prime + SessionRlPolicy, SHA-256 hash-chain, in-memory e-liability seed, adapter stubs. | Same tab as SPA | Lost on refresh. Not the Postgres control plane. Not hosted RL. |
 | Shared contracts (`packages/earth-contracts`) | Frozen literals: `DEVELOPMENT_ONLY`, honesty labels, intake enums. Canonical DEMO GHG line items. | — | Types/literals + DEMO spine only. |
@@ -124,7 +124,7 @@ This is the only **durable** product slice. Document: `docs/FIRST_PROCESS_MATERI
 
 - Workflow `MATERIAL_OPPORTUNITY_INTAKE` `0.1`, policy `prime-v0.1`, ≤ 5 tasks.
 - Persists: orgs, users, material batches, sessions, tasks, audit events.
-- DEVELOPMENT headers: `x-earth-org-id`, `x-earth-user-id`, `x-earth-user-role` behind `AuthProvider.getActor` → `AuthenticatedActor` + `TenantContext` (lookup in Postgres — **not OIDC**). Role is `users.role`; the role header cannot escalate.
+- DEVELOPMENT headers: `x-earth-org-id`, `x-earth-user-id` behind `AuthProvider.getActor` → `AuthenticatedActor` + `TenantContext` (lookup in Postgres). **`x-earth-user-role` is ignored.** Role is `users.role`. Optional OIDC: Bearer JWT, `sub` → `users.oidc_subject`; org/role still from DB. **Not production authentication.** See `docs/OIDC_AND_TENANT_ISOLATION.md`.
 - Seed UUIDs (labelled DEVELOPMENT): org `11111111-1111-1111-1111-111111111111`, user `22222222-2222-2222-2222-222222222222` role `OWNER`.
 - Task stubs: `VALIDATE_BATCH`, `CHECK_EVIDENCE` (no document bytes), `CALCULATE_BASELINE` (echoes user CO₂e as `INPUT_UNVERIFIED`), `FIND_CANDIDATE_ROUTES` (empty), `NANOCHAT_EXTRACT` always `NOT_CONFIGURED` if created. **No LLM call.**
 - SPA page `/intake` POSTs via Vite proxy. Envelope `"mode": "DEVELOPMENT_ONLY"`.
@@ -169,7 +169,8 @@ Legend:
 |------------|-------|----------|
 | Vite SPA + NASA command bar, port 5180 | **A** | `vite.config.ts`, `src/App.tsx`, no Sidebar |
 | Fastify health/info + intake v0.1 + Postgres | **A** | `apps/api`, `docker-compose.yml` |
-| DEVELOPMENT identity headers | **A** (as prototype) / **D** if called “auth” | `apps/api/src/auth/` — `DevelopmentAuthProvider.getActor`; not OIDC |
+| DEVELOPMENT identity headers | **A** (as prototype) / **D** if called “auth” | `DevelopmentHeaderAuthProvider.getActor`; `x-earth-user-role` ignored; not production auth |
+| OIDC JWT validation | **B** | `OidcJwtAuthProvider` when `EARTH_AUTH_MODE=oidc`; `authentication` stays false; `oidcConfigured` only after init. No auto-provision. |
 | Material intake SPA client | **A** | `/intake`, Zod client, proxy |
 | EarthBus in-memory events | **B** | Typed bus; not Kafka; not durable |
 | CompassGate 4 floors + digest | **B** | Real TS + tests; not paper COMPASS / not RAG |
@@ -190,7 +191,7 @@ Legend:
 | Kafka / Neo4j / Redis / chain | **C** | Compose postgres only |
 | Cirkel camera/CV/wallet/PWA | **C** | Forbidden + absent |
 | LLM / NanoChat / RAG | **C** | `nanoChat: false`; extract `NOT_CONFIGURED` |
-| Production tenancy / OIDC | **C** | `TenantContext` + DEVELOPMENT provider only; no OIDC. See `docs/TENANT_CONTEXT_AND_AUTH_MIGRATION.md` |
+| Production tenancy / OIDC | **B** / **C** | TenantContext + optional OIDC JWT path; **no RLS**. Not production-ready. See `docs/OIDC_AND_TENANT_ISOLATION.md` |
 | CI (GitHub Actions) | **C** | Not in tree |
 | Chronos 10M twins / HyperMatrix FHE | **D** | Routed DEMO pages with fiction copy |
 
@@ -225,7 +226,7 @@ npm run typecheck
 npm run api:typecheck
 ```
 
-`GET /v1/info` honest flags (this tree): `postgres` true, `materialOpportunityIntake` true, `primeRuntime` true (intake policy only), **`authentication` false**, **`nanoChat` false**, **`recyclerNetwork` false**, **`reinforcementLearning` false**, **`blockchain` false**, **`digitalProductPassport` false**.
+`GET /v1/info` honest flags (this tree): `postgres` true, `materialOpportunityIntake` true, `primeRuntime` true (intake policy only), **`authentication` false**, **`oidcConfigured` false in development** (true only when OIDC env is set and the JWT provider initialized), **`nanoChat` false**, **`recyclerNetwork` false**, **`reinforcementLearning` false**, **`blockchain` false**, **`digitalProductPassport` false**, **`productionReady` false**.
 
 ### Demo: start a material opportunity
 
@@ -258,7 +259,7 @@ curl -X POST http://localhost:3001/v1/material-opportunities/start \
   }'
 ```
 
-Those org/user UUIDs are a **DEVELOPMENT seed**, not production identities. Repeat `POST /v1/sessions/:sessionId/run-next` to drain stub tasks. Empty `documentIds` → `EVIDENCE_MISSING` / `WAITING_FOR_DEPENDENCY`.
+Those org/user UUIDs are a **DEVELOPMENT seed**, not production identities. `x-earth-user-role` is ignored. Repeat `POST /v1/sessions/:sessionId/run-next` to drain stub tasks. Empty `documentIds` → `EVIDENCE_MISSING` / `WAITING_FOR_DEPENDENCY`.
 
 SPA: open **OPERATIONS → Material intake** (`/intake`).
 
@@ -282,7 +283,7 @@ Do **not** say, imply, or let a screenshot imply:
 - “We implemented COMPASS (the paper)” or “we replicated How Hungry is AI telemetry”
 - Cirkel features (camera, MitID, wallet) as EARTH
 - Resourcify’s 800 recyclers or Sweep’s CSRD mill as EARTH
-- Production authentication or multi-tenant security
+- Production authentication or multi-tenant security (OIDC JWT validation is not production-ready; RLS is not enabled)
 
 **House line (keep using it):**  
 *EARTH is currently a development prototype. No external ESG, regulatory, recycler, ERP, tax, blockchain, or AI-provider integration is active.*
@@ -328,6 +329,6 @@ Do **not** say, imply, or let a screenshot imply:
 
 Copy below into AlphaXiv; keep this file for the long version.
 
-> EARTH (`github.com/Broser-ai/EARTH`, `main`) is a **development prototype**, not deployed science. Today: Vite SPA :5180 (NASA command bar, DEMO ESG screens) + Fastify/Postgres :3001 (**Material Opportunity Intake v0.1**, deterministic stubs, DEVELOPMENT headers behind TenantContext — not auth) + an **in-tab** TS kernel (CompassGate floors, LangGraph FSM, session-rl bandit, SHA-256 hash-chain, in-memory e-liability seed).  
+> EARTH (`github.com/Broser-ai/EARTH`, `main`) is a **development prototype**, not deployed science. Today: Vite SPA :5180 (NASA command bar, DEMO ESG screens) + Fastify/Postgres :3001 (**Material Opportunity Intake v0.1**, deterministic stubs, DEVELOPMENT headers behind TenantContext — not production auth; optional OIDC JWT path does not grant org/role from claims) + an **in-tab** TS kernel (CompassGate floors, LangGraph FSM, session-rl bandit, SHA-256 hash-chain, in-memory e-liability seed).  
 > COMPASS 2603.11277 → **not** the paper’s RAG/LLM-as-judge system; four hardcoded TS floors. How Hungry is AI → EcoAgent **heuristic** (E×PUE×CIF×WUE defaults), no telemetry. e-liability → in-memory graph, **not** Neo4j; SPA carbon pages and the kernel share one DEMO GHG spine (2847/4123/7877, totals derived). Kafka → `EarthBus` in RAM. ZK-STARK → **absent** (SHA-256 only, empty JWK DID). RL → session-rl in the tab; API `reinforcementLearning: false`. Tinker/Inkling/Roboflow → **stubs**. Cirkel is **not this repo**. Sweep/Resourcify are competitors (14 mock recyclers, not 800). Battery DPP / CSRD Omnibus / PPWR are **UI/docs**, not implementations.  
 > Do not cite CSRD, EU AI Act, ZK, autonomy, or live ERP. Cite this file + SHA. Demo: `docs/ALPHAXIV_STATUS.md` §4 curl.

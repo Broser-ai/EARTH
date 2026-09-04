@@ -26,7 +26,8 @@ The first `apps/api` wave added `GET /health` and `GET /v1/info`. This tree now 
 | `postgres` | true | local schema + Compose |
 | `materialOpportunityIntake` | true | first durable workflow |
 | `primeRuntime` | true | PRIME v0.1 for this workflow only |
-| `authentication` | false | DEVELOPMENT headers, not OIDC |
+| `authentication` | false | DEVELOPMENT headers and optional OIDC JWT path; not production auth |
+| `oidcConfigured` | false unless OIDC env + provider init | never inferred from a request token |
 | `nanoChat` | false | NOT_CONFIGURED |
 | `recyclerNetwork` | false | no recycler adapter |
 | `reinforcementLearning` | false | not present |
