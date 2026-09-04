@@ -1,7 +1,9 @@
 import type { FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
-import { USER_ROLES, type UserRole } from '../contracts.js';
+import { developmentAuthAllowed, type EarthConfig } from '../config.js';
+import type { UserRole } from '../contracts.js';
 import { AuthError } from './errors.js';
+import { readHeader } from './headers.js';
 import {
   AUTH_MODE_DEVELOPMENT,
   type AuthenticatedActor,
@@ -13,24 +15,39 @@ const UUID_RE =
 
 /**
  * DEVELOPMENT ONLY identity.
- * Headers identify which seeded row to load; they are not authentication.
- * Role always comes from Postgres users.role. x-earth-user-role cannot escalate.
+ *
+ * Active solely when NODE_ENV is development (or the test runner) AND
+ * EARTH_AUTH_MODE=development. Headers identify which seeded row to load;
+ * they are not authentication.
+ *
+ * Org and role always come from Postgres. `x-earth-user-role` is ignored
+ * entirely — it is not read, not validated, and cannot escalate.
  */
-export class DevelopmentAuthProvider implements AuthProvider {
+export class DevelopmentHeaderAuthProvider implements AuthProvider {
   readonly authMode = AUTH_MODE_DEVELOPMENT;
 
-  constructor(private readonly pool: Pool) {}
+  constructor(
+    private readonly pool: Pool,
+    private readonly config: Pick<EarthConfig, 'nodeEnv' | 'authModeSetting'>,
+  ) {}
 
   async getActor(request: FastifyRequest): Promise<AuthenticatedActor> {
-    const organizationId = header(request, 'x-earth-org-id');
-    const userId = header(request, 'x-earth-user-id');
-    const roleHeader = header(request, 'x-earth-user-role');
+    if (!developmentAuthAllowed(this.config.nodeEnv, this.config.authModeSetting)) {
+      throw new AuthError(
+        401,
+        'DEVELOPMENT_AUTH_DISABLED',
+        'DEVELOPMENT identity headers are disabled outside local development. This is not production authentication.',
+      );
+    }
 
-    if (!organizationId || !userId || !roleHeader) {
+    const organizationId = readHeader(request, 'x-earth-org-id');
+    const userId = readHeader(request, 'x-earth-user-id');
+
+    if (!organizationId || !userId) {
       throw new AuthError(
         401,
         'DEVELOPMENT_IDENTITY_REQUIRED',
-        'DEVELOPMENT ONLY: send x-earth-org-id, x-earth-user-id, and x-earth-user-role. This is not authentication.',
+        'DEVELOPMENT ONLY: send x-earth-org-id and x-earth-user-id. x-earth-user-role is ignored. This is not authentication.',
       );
     }
 
@@ -42,16 +59,13 @@ export class DevelopmentAuthProvider implements AuthProvider {
       );
     }
 
-    if (!isRole(roleHeader)) {
-      throw new AuthError(
-        400,
-        'DEVELOPMENT_IDENTITY_INVALID',
-        'DEVELOPMENT ONLY: x-earth-user-role is not a known role. This is not authentication.',
-      );
-    }
-
-    const result = await this.pool.query<{ id: string; organization_id: string; role: UserRole }>(
-      `SELECT id, organization_id, role FROM users WHERE id = $1 AND organization_id = $2`,
+    const result = await this.pool.query<{
+      id: string;
+      organization_id: string;
+      role: UserRole;
+      email: string;
+    }>(
+      `SELECT id, organization_id, role, email FROM users WHERE id = $1 AND organization_id = $2`,
       [userId, organizationId],
     );
     const user = result.rows[0];
@@ -68,21 +82,10 @@ export class DevelopmentAuthProvider implements AuthProvider {
       organizationId: user.organization_id,
       role: user.role,
       authMode: AUTH_MODE_DEVELOPMENT,
+      email: user.email,
     };
   }
 }
 
-function header(request: FastifyRequest, name: string): string | undefined {
-  const value = request.headers[name];
-  if (typeof value === 'string') {
-    return value.trim();
-  }
-  if (Array.isArray(value) && typeof value[0] === 'string') {
-    return value[0].trim();
-  }
-  return undefined;
-}
-
-function isRole(value: string): value is UserRole {
-  return (USER_ROLES as readonly string[]).includes(value);
-}
+/** @deprecated Use DevelopmentHeaderAuthProvider. */
+export const DevelopmentAuthProvider = DevelopmentHeaderAuthProvider;

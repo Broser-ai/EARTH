@@ -37,6 +37,7 @@ describe('API foundation (DEVELOPMENT_ONLY)', () => {
       mode: string;
       service: string;
       version: string;
+      productionReady: boolean;
       integrations: Record<string, boolean>;
       routes: Array<{ method: string; path: string }>;
       note: string;
@@ -45,11 +46,13 @@ describe('API foundation (DEVELOPMENT_ONLY)', () => {
     expect(body.mode).toBe(DEVELOPMENT_MODE);
     expect(body.service).toBe(SERVICE_NAME);
     expect(body.version).toBe(SERVICE_VERSION);
+    expect(body.productionReady).toBe(false);
     expect(body.integrations).toEqual(INTEGRATION_FLAGS);
     expect(body.integrations.postgres).toBe(true);
     expect(body.integrations.materialOpportunityIntake).toBe(true);
     expect(body.integrations.primeRuntime).toBe(true);
     expect(body.integrations.authentication).toBe(false);
+    expect(body.integrations.oidcConfigured).toBe(false);
     expect(body.integrations.nanoChat).toBe(false);
     expect(body.integrations.recyclerNetwork).toBe(false);
     expect(body.integrations.reinforcementLearning).toBe(false);
@@ -60,6 +63,7 @@ describe('API foundation (DEVELOPMENT_ONLY)', () => {
     expect(body.note).toMatch(/No live LLM, recycler, ERP, SKAT, or SAP/i);
     expect(JSON.stringify(body)).not.toMatch(/postgres:\/\//i);
     expect(JSON.stringify(body)).not.toMatch(/api[_-]?key/i);
+    expect(JSON.stringify(body)).not.toMatch(/client_secret/i);
   });
 
   it('labels unknown routes as DEVELOPMENT_ONLY 404', async () => {
@@ -77,16 +81,49 @@ describe('API foundation (DEVELOPMENT_ONLY)', () => {
       },
     });
   });
+
+  it('allows the Vite origin and never uses a CORS wildcard with credentials', async () => {
+    const allowed = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: { origin: 'http://localhost:5180' },
+    });
+    expect(allowed.headers['access-control-allow-origin']).toBe('http://localhost:5180');
+    expect(allowed.headers['access-control-allow-credentials']).toBe('true');
+    expect(allowed.headers['access-control-allow-origin']).not.toBe('*');
+
+    const denied = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: { origin: 'https://evil.example' },
+    });
+    expect(denied.headers['access-control-allow-origin']).toBeUndefined();
+    expect(denied.headers['access-control-allow-credentials']).toBeUndefined();
+  });
 });
 
 describe('loadConfig', () => {
+  const developmentDefaults = {
+    host: '0.0.0.0' as const,
+    nodeEnv: 'development',
+    authModeSetting: 'development' as const,
+    oidc: null,
+    corsOrigins: ['http://localhost:5180'],
+    rateLimitMax: 100,
+    rateLimitWindowMs: 60_000,
+  };
+
   it('defaults to 0.0.0.0:3001 without a database URL', () => {
-    expect(loadConfig({})).toEqual({ host: '0.0.0.0', port: 3001, databaseUrl: undefined });
+    expect(loadConfig({})).toEqual({
+      ...developmentDefaults,
+      port: 3001,
+      databaseUrl: undefined,
+    });
   });
 
   it('reads PORT from the environment', () => {
     expect(loadConfig({ PORT: '8080' })).toEqual({
-      host: '0.0.0.0',
+      ...developmentDefaults,
       port: 8080,
       databaseUrl: undefined,
     });
@@ -94,7 +131,7 @@ describe('loadConfig', () => {
 
   it('reads DATABASE_URL when present', () => {
     expect(loadConfig({ DATABASE_URL: 'postgres://earth:earth@localhost:5432/earth' })).toEqual({
-      host: '0.0.0.0',
+      ...developmentDefaults,
       port: 3001,
       databaseUrl: 'postgres://earth:earth@localhost:5432/earth',
     });
@@ -102,5 +139,9 @@ describe('loadConfig', () => {
 
   it('rejects a non-integer PORT', () => {
     expect(() => loadConfig({ PORT: 'nope' })).toThrow(/PORT must be a positive integer/);
+  });
+
+  it('refuses a CORS wildcard', () => {
+    expect(() => loadConfig({ CORS_ORIGINS: '*' })).toThrow(/wildcard/);
   });
 });

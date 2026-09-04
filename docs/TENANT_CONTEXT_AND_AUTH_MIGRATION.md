@@ -1,6 +1,8 @@
 # Tenant context and auth migration
 
-**Status:** DEVELOPMENT preparation. Not production authentication. No OIDC.
+**Status:** superseded for the OIDC path by [OIDC_AND_TENANT_ISOLATION.md](./OIDC_AND_TENANT_ISOLATION.md). This page remains the record of the previous increment (DEVELOPMENT headers behind AuthProvider + Postgres `users.role`).
+
+**v0.1 now:** `x-earth-user-role` is ignored entirely. Role and org still come from Postgres. OIDC JWT validation is a separate provider; it is not production authentication. No RLS.
 
 ## What landed
 
@@ -18,8 +20,8 @@ The only provider is `DevelopmentAuthProvider`. `authMode` is always `DEVELOPMEN
 
 `users.role` in Postgres (CHECK: `OWNER`, `ESG_LEAD`, `OPERATIONS`, `REVIEWER`, `VIEWER`) is the authorization role.
 
-- `x-earth-user-role` is still **required** so the documented DEVELOPMENT curl keeps working.
-- It is **not** used as a privilege grant. Changing it to `OWNER` cannot escalate a `VIEWER` row.
+- `x-earth-user-role` is **ignored entirely** (v0.1). Changing it to `OWNER` cannot escalate a `VIEWER` row.
+- Org and user headers still select the seeded row in DEVELOPMENT mode.
 - Write (start / run-next): `OWNER`, `ESG_LEAD`, `OPERATIONS`.
 - Read (session / audit): those plus `REVIEWER`, `VIEWER`.
 
@@ -51,9 +53,9 @@ This is **not** authentication.
 
 - Anyone who can reach the process and guess/copy seeded UUIDs is that actor.
 - Headers are not signed, not expired, not bound to a session cookie or DPoP.
-- CORS reflects `Origin`.
-- No OIDC, no MFA, no org switcher, no row-level Postgres policies (`SET LOCAL` role).
+- CORS is an explicit allow-list (default `http://localhost:5180`); no wildcard with credentials.
+- OIDC JWT validation exists when `EARTH_AUTH_MODE=oidc` (see the OIDC doc). No MFA, no org switcher, no row-level Postgres policies (`SET LOCAL` role). RLS is design-only.
 - HITL / capability tree in the SPA kernel remains in-tab and forgeable.
 - Do not expose this API beyond local DEVELOPMENT.
 
-Next real auth step (out of scope here): replace `DevelopmentAuthProvider` with an OIDC provider that still returns `AuthenticatedActor` and `TenantContext`. Do not add LLM, NanoChat, RAG, RL, or external ESG integrations as part of that swap.
+OIDC swap: [OIDC_AND_TENANT_ISOLATION.md](./OIDC_AND_TENANT_ISOLATION.md). Do not add LLM, NanoChat, RAG, RL, or external ESG integrations as part of auth work.

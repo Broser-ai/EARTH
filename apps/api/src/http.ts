@@ -2,7 +2,7 @@ import { AUTH_MODE_DEVELOPMENT, type AuthMode } from './auth/types.js';
 import { DEVELOPMENT_MODE, type DevelopmentMode } from './contracts.js';
 
 export { DEVELOPMENT_MODE, type DevelopmentMode };
-export { AUTH_MODE_DEVELOPMENT, type AuthMode };
+export { AUTH_MODE_DEVELOPMENT, AUTH_MODE_OIDC, type AuthMode } from './auth/types.js';
 
 export function modeEnvelope<T extends object>(
   authMode: AuthMode | undefined,
@@ -50,4 +50,11 @@ export function developmentError(
     mode: DevelopmentMode;
     error: { code: string; message: string } & Record<string, unknown>;
   };
+}
+
+export function clientSafeErrorMessage(status: number, message: string): string {
+  if (status >= 500) {
+    return 'unexpected server error';
+  }
+  return message;
 }

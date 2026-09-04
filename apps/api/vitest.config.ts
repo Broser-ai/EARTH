@@ -9,6 +9,7 @@ export default defineConfig({
     hookTimeout: 30_000,
     env: {
       NODE_ENV: 'test',
+      EARTH_AUTH_MODE: 'development',
     },
   },
 });

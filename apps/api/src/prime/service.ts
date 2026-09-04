@@ -134,7 +134,7 @@ export class PrimeService {
           input.materialBatch.quantityKg,
           input.materialBatch.facilityName ?? null,
           input.materialBatch.availableFrom ?? null,
-          tenant.actor.actorId,
+          tenant.actorId,
         ],
       );
 
@@ -167,7 +167,7 @@ export class PrimeService {
           plan.budget.maxOutputTokens,
           plan.budget.maxEstimatedCostDkk,
           plan.budget.maxEstimatedGco2e,
-          tenant.actor.actorId,
+          tenant.actorId,
         ],
       );
 
@@ -175,7 +175,8 @@ export class PrimeService {
         organizationId: tenant.organizationId,
         sessionId,
         actorType: 'USER',
-        actorId: tenant.actor.actorId,
+        actorId: tenant.actorId,
+        authMode: tenant.authMode,
         eventType: 'SESSION_CREATED',
         previousState: null,
         nextState: 'QUEUED',
@@ -214,6 +215,7 @@ export class PrimeService {
           taskId,
           actorType: 'SYSTEM',
           actorId: 'prime-v0.1',
+          authMode: tenant.authMode,
           eventType: 'TASK_CREATED',
           previousState: null,
           nextState: planned.initialState,
@@ -233,6 +235,7 @@ export class PrimeService {
         to: 'RUNNING',
         actorType: 'SYSTEM',
         actorId: 'prime-v0.1',
+        authMode: tenant.authMode,
       });
 
       const envelope = await this.loadEnvelope(client, tenant, sessionId);
@@ -266,6 +269,7 @@ export class PrimeService {
       taskId: string | null;
       actorType: string;
       actorId: string;
+      authMode: string | null;
       eventType: string;
       previousState: string | null;
       nextState: string | null;
@@ -291,6 +295,7 @@ export class PrimeService {
       task_id: string | null;
       actor_type: string;
       actor_id: string;
+      auth_mode: string | null;
       event_type: string;
       previous_state: string | null;
       next_state: string | null;
@@ -313,6 +318,7 @@ export class PrimeService {
       taskId: row.task_id,
       actorType: row.actor_type,
       actorId: row.actor_id,
+      authMode: row.auth_mode,
       eventType: row.event_type,
       previousState: row.previous_state,
       nextState: row.next_state,
@@ -378,6 +384,7 @@ export class PrimeService {
         taskId: task.id,
         actorType: 'WORKER',
         actorId: 'earth-dev-worker',
+        authMode: tenant.authMode,
         eventType: 'TASK_CLAIMED',
         previousState: 'QUEUED',
         nextState: 'RUNNING',
@@ -406,6 +413,7 @@ export class PrimeService {
           taskId: task.id,
           actorType: 'WORKER',
           actorId: 'earth-dev-worker',
+          authMode: tenant.authMode,
           eventType: 'TASK_STATE_CHANGED',
           previousState: 'RUNNING',
           nextState: 'BLOCKED',
@@ -419,6 +427,7 @@ export class PrimeService {
           to: 'BUDGET_STOPPED',
           actorType: 'SYSTEM',
           actorId: 'prime-v0.1',
+          authMode: tenant.authMode,
           metadata: { reasonCode: 'BUDGET_EXCEEDED' },
         });
         const envelope = await this.requireEnvelope(client, tenant, sessionId);
@@ -468,6 +477,7 @@ export class PrimeService {
         taskId: task.id,
         actorType: 'WORKER',
         actorId: 'earth-dev-worker',
+        authMode: tenant.authMode,
         eventType: 'TASK_STATE_CHANGED',
         previousState: 'RUNNING',
         nextState,
@@ -532,6 +542,7 @@ export class PrimeService {
         to: 'FAILED',
         actorType: 'SYSTEM',
         actorId: 'prime-v0.1',
+        authMode: tenant.authMode,
         metadata: { failedTaskIds: failed.map((task) => task.id) },
       });
       return;
@@ -549,6 +560,7 @@ export class PrimeService {
           to: 'RUNNING',
           actorType: 'SYSTEM',
           actorId: 'prime-v0.1',
+          authMode: tenant.authMode,
         });
       }
       return;
@@ -574,6 +586,7 @@ export class PrimeService {
       to: next,
       actorType: 'SYSTEM',
       actorId: 'prime-v0.1',
+      authMode: tenant.authMode,
       metadata: { evidenceMissing },
     });
   }
@@ -587,6 +600,7 @@ export class PrimeService {
       to: SessionState;
       actorType: 'USER' | 'SYSTEM' | 'WORKER';
       actorId: string;
+      authMode: TenantContext['authMode'];
       metadata?: Record<string, unknown>;
     },
   ): Promise<void> {
@@ -605,6 +619,7 @@ export class PrimeService {
       sessionId: args.sessionId,
       actorType: args.actorType,
       actorId: args.actorId,
+      authMode: args.authMode,
       eventType: 'SESSION_STATE_CHANGED',
       previousState: args.from,
       nextState: args.to,

@@ -5,11 +5,17 @@ export const SERVICE_VERSION = '0.1.0' as const;
  * Honest capability flags for this tree.
  * DEVELOPMENT ONLY — true means the local prototype implements that slice,
  * not that a production integration, IdP, or vendor is live.
+ *
+ * `authentication` stays false until production auth is explicitly enabled.
+ * `oidcConfigured` is overlaid at runtime when EARTH_AUTH_MODE=oidc and
+ * the JWT provider finished initializing. It is never inferred from token
+ * claims in the request.
  */
 export const INTEGRATION_FLAGS = {
   postgres: true,
   materialOpportunityIntake: true,
   authentication: false,
+  oidcConfigured: false,
   primeRuntime: true,
   nanoChat: false,
   metaHarness: false,
@@ -28,7 +34,7 @@ export const PRODUCT_ROUTES = [
   {
     method: 'POST',
     path: '/v1/material-opportunities/start',
-    purpose: 'start MATERIAL_OPPORTUNITY_INTAKE v0.1 (DEVELOPMENT headers)',
+    purpose: 'start MATERIAL_OPPORTUNITY_INTAKE v0.1 (DEVELOPMENT headers or OIDC Bearer)',
   },
   { method: 'GET', path: '/v1/sessions/:sessionId', purpose: 'read a session envelope for this org' },
   {
@@ -50,7 +56,9 @@ export function describeIntegration(name: IntegrationName): string {
     case 'materialOpportunityIntake':
       return 'MATERIAL_OPPORTUNITY_INTAKE v0.1 persists sessions, tasks, and audit events';
     case 'authentication':
-      return 'no OIDC or production auth — DEVELOPMENT identity headers behind TenantContext / AuthProvider.getActor only';
+      return 'not production authentication — false in development; never production-ready in this increment';
+    case 'oidcConfigured':
+      return 'true only when EARTH_AUTH_MODE=oidc, OIDC issuer/audience are set, and the JWT provider initialized';
     case 'primeRuntime':
       return 'PRIME policy v0.1 for MATERIAL_OPPORTUNITY_INTAKE only; no general agent runtime';
     case 'nanoChat':

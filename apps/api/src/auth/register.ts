@@ -1,5 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { AuthError } from './errors.js';
+import { readHeader } from './headers.js';
 import { modeError } from '../http.js';
 import { createTenantContext, type AuthProvider, type TenantContext } from './types.js';
 
@@ -21,9 +23,17 @@ function isPublicRoute(request: FastifyRequest): boolean {
   return request.method === 'GET' && (path === '/health' || path === '/v1/info');
 }
 
+function correlationIdFrom(request: FastifyRequest): string {
+  const raw = readHeader(request, 'x-request-id') ?? readHeader(request, 'x-correlation-id');
+  if (raw && raw.length <= 128 && /^[A-Za-z0-9._:-]+$/.test(raw)) {
+    return raw;
+  }
+  return randomUUID();
+}
+
 /**
  * Resolves TenantContext via AuthProvider.getActor.
- * DEVELOPMENT headers stay until an OIDC provider exists. This is not authentication.
+ * Organization, actor, and role are server-derived only.
  */
 export function registerAuthProvider(app: FastifyInstance, provider: AuthProvider): void {
   app.earthAuthProvider = provider;
@@ -36,7 +46,7 @@ export function registerAuthProvider(app: FastifyInstance, provider: AuthProvide
 
     try {
       const actor = await provider.getActor(request);
-      request.earthTenant = createTenantContext(actor);
+      request.earthTenant = createTenantContext(actor, correlationIdFrom(request));
     } catch (error) {
       if (error instanceof AuthError) {
         return reply.status(error.status).send(modeError(provider.authMode, error.code, error.message));

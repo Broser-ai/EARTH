@@ -40,9 +40,9 @@ No recycler, ERP, Slack, Teams, SKAT, SAP, email, blockchain, authority, or AI-p
 ```
 Client (SPA Material intake or curl)
   │  POST /v1/material-opportunities/start
-  │  headers: x-earth-org-id, x-earth-user-id, x-earth-user-role  (DEVELOPMENT ONLY)
+  │  headers: x-earth-org-id, x-earth-user-id  (DEVELOPMENT ONLY; role header ignored)
   ▼
-Identity middleware (header lookup in Postgres — not OIDC)
+AuthProvider → TenantContext (Postgres org/role; OIDC Bearer when configured)
   ▼
 PRIME policy v0.1 (deterministic plan, ≤ 5 tasks)
   ▼
@@ -98,9 +98,9 @@ Headers:
 
 - `x-earth-org-id`
 - `x-earth-user-id`
-- `x-earth-user-role`
+- `x-earth-user-role` (ignored entirely; role comes from Postgres)
 
-This is **not authentication**. Anyone who can reach the process and guess/copy the seed UUIDs can act as that user. Replace with OIDC (or equivalent) before any shared or production deploy.
+This is **not authentication**. Anyone who can reach the process and guess/copy the seed UUIDs can act as that user. OIDC JWT validation is available when `EARTH_AUTH_MODE=oidc` — see [OIDC_AND_TENANT_ISOLATION.md](./OIDC_AND_TENANT_ISOLATION.md). Development headers remain DEVELOPMENT_ONLY and are not production authentication.
 
 `GET /health` and `GET /v1/info` do **not** require these headers.
 
