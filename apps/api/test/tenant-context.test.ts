@@ -58,7 +58,7 @@ describe('TenantContext and DEVELOPMENT AuthProvider', () => {
     });
     expect(start.statusCode).toBe(403);
     expect(start.json().mode).toBe(AUTH_MODE_DEVELOPMENT);
-    expect(start.json().error.code).toBe('ROLE_FORBIDDEN');
+    expect(start.json().error.code).toBe('FORBIDDEN');
 
     const count = await pool.query(
       `SELECT count(*)::int AS n FROM execution_sessions WHERE organization_id = $1`,
@@ -130,7 +130,7 @@ describe('TenantContext and DEVELOPMENT AuthProvider', () => {
       headers: viewerEscalateHeaders,
     });
     expect(run.statusCode).toBe(403);
-    expect(run.json().error.code).toBe('ROLE_FORBIDDEN');
+    expect(run.json().error.code).toBe('FORBIDDEN');
   });
 
   it('does not let body organizationId override TenantContext', async () => {

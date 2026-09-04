@@ -310,6 +310,8 @@ export class PrimeService {
       task_id: string | null;
       actor_type: string;
       actor_id: string;
+      auth_mode: string | null;
+      correlation_id: string | null;
       event_type: string;
       previous_state: string | null;
       next_state: string | null;
@@ -332,6 +334,8 @@ export class PrimeService {
       taskId: row.task_id,
       actorType: row.actor_type,
       actorId: row.actor_id,
+      authMode: row.auth_mode,
+      correlationId: row.correlation_id,
       eventType: row.event_type,
       previousState: row.previous_state,
       nextState: row.next_state,

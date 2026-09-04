@@ -12,7 +12,7 @@ export class AuthError extends Error {
 
 export class RoleForbiddenError extends AuthError {
   constructor(message: string) {
-    super(403, 'ROLE_FORBIDDEN', message);
+    super(403, 'FORBIDDEN', message);
     this.name = 'RoleForbiddenError';
   }
 }
