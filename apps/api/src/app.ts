@@ -15,6 +15,7 @@ import {
   SERVICE_VERSION,
 } from './info.js';
 import { registerPrimeRoutes } from './prime/routes.js';
+import { registerEvidenceRoutes } from './evidence/routes.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -96,6 +97,7 @@ export async function buildApp(pool?: Pool, authConfig?: AuthConfig): Promise<Fa
         : new OidcJwtAuthProvider(pool, authConfig);
     registerAuthProvider(app, provider);
     registerPrimeRoutes(app, pool);
+    registerEvidenceRoutes(app, pool);
   }
 
   app.setNotFoundHandler((request, reply) => {
