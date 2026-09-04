@@ -8,7 +8,7 @@ export class RoboflowVisionAdapter {
   constructor(
     private readonly bus: EarthBus,
     private readonly client: RoboflowClient,
-  ) {}
+  ) { }
 
   mode(): RoboflowClient['mode'] {
     return this.client.mode;
