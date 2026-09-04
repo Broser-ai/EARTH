@@ -1,7 +1,8 @@
 # Swarm status
 
 **Integration branch:** `integration/earth-foundation-v0`  
-**Integration SHA:** `26cefb3dbd26ed962e3cc4c1931d82c058aeaef2`  
+**Last specialist merge:** `26cefb3dbd26ed962e3cc4c1931d82c058aeaef2`  
+**Status register:** this file; branch tip is the latest commit on `integration/earth-foundation-v0`  
 **Base (published):** `origin/main` @ `7490bdac3f5385d4b99597e31f9ab5ec54de82a8` (SPA only)  
 **PRIME:** inspect + merge into integration only; no product implementation on this branch  
 **Updated:** 2026-09-04T07:52:29Z
@@ -47,7 +48,7 @@ None rejected. No out-of-scope files. No postgres/intake implementation. No secr
 | Item | Value |
 |------|--------|
 | Branch | `integration/earth-foundation-v0` |
-| Tip | `26cefb3dbd26ed962e3cc4c1931d82c058aeaef2` |
+| Last specialist merge | `26cefb3dbd26ed962e3cc4c1931d82c058aeaef2` |
 | Merged specialist branches | `feat/quality-baseline`, `feat/frontend-truth`, `feat/api-foundation` |
 | Post-merge gate | **pass** (see below) |
 | Foundation green | **yes** |
@@ -57,6 +58,8 @@ PRIME worktree: `/tmp/earth-integration-foundation`
 `/workspace` remains on `cursor/material-opportunity-intake-a2a5` (intake not discarded).
 
 Draft PR vs `main` (must stay draft/unmerged): https://github.com/Broser-ai/EARTH/pull/9
+
+ManagePullRequest is not available in this environment (`gh` is read-only). PR #9 already exists with base `main` and head `integration/earth-foundation-v0`; it must remain draft. The PR body still says “coordination docs only” until a session with ManagePullRequest can call `update_pr` (`skip_branch_prefix_check: true`).
 
 ---
 
