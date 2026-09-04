@@ -10,7 +10,7 @@ v0.3 partial verification passed: `git diff --check`, SPA/API typechecks, lint, 
 
 ## Docker-Blocked Work
 
-Docker is `BLOCKED_BY_DOCKER`: `docker` is unavailable on `PATH`, so `docker --version`, `docker compose version`, and `docker info` cannot run. PostgreSQL, migrations, database-dependent API tests, API runtime smoke checks, intake-flow verification, and `EARTH: Full verification (Docker required)` are not run. Install and start Docker Desktop as described in `docs/DOCKER_SETUP.md`, then run `EARTH: Check Docker and Postgres prerequisites` followed by `EARTH: Full verification (Docker required)`.
+Docker is `BLOCKED_BY_DOCKER`: `docker` is unavailable on `PATH`; the Docker Verification Pass therefore cannot run `docker --version`, `docker compose version`, or `docker info`. PostgreSQL, migrations, database-dependent API tests, API runtime smoke checks, intake-flow verification, and `EARTH: Full verification (Docker required)` are not run. Install and start Docker Desktop as described in `docs/DOCKER_SETUP.md`, then run `EARTH: Check Docker and Postgres prerequisites` followed by `EARTH: Full verification (Docker required)`.
 
 ## Tinker Verdict
 
