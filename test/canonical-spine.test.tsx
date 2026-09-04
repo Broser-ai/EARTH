@@ -1,3 +1,5 @@
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import {
@@ -14,6 +16,18 @@ import CarbonAccounting from '../src/pages/CarbonAccounting';
 import EmissionsScope from '../src/pages/EmissionsScope';
 import { ELiabilityGraph } from '../src/sovereign/eliability/ELiabilityGraph.ts';
 import { seedHornbachSpine } from '../src/sovereign/eliability/seed.ts';
+
+async function sourceFiles(directory: string): Promise<string[]> {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = await Promise.all(
+    entries.map(async (entry) => {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) return sourceFiles(path);
+      return /\.(ts|tsx)$/.test(entry.name) && !/\.test\.(ts|tsx)$/.test(entry.name) ? [path] : [];
+    }),
+  );
+  return files.flat();
+}
 
 describe('canonical DEMO GHG spine', () => {
   it('has one source of line items and derives total from s1+s2+s3', () => {
@@ -57,6 +71,19 @@ describe('canonical DEMO GHG spine', () => {
     expect(carbon.totalTCO2e).toBe(carbon.scope1 + carbon.scope2 + carbon.scope3);
     expect(carbon.totalTCO2e).toBe(GHG_TOTAL);
     expect(carbon.posts).toHaveLength(DEMO_GHG_LINE_ITEMS.length);
+  });
+
+  it('does not retain a second active hardcoded canonical scope breakdown', async () => {
+    const duplicates: string[] = [];
+
+    for (const file of await sourceFiles('src')) {
+      const source = await readFile(file, 'utf8');
+      if (['2847', '4123', '7877'].every((value) => source.includes(value))) {
+        duplicates.push(file);
+      }
+    }
+
+    expect(duplicates).toEqual([]);
   });
 
   it('renders Carbon and Scope pages as DEMO / INPUT_UNVERIFIED', () => {
