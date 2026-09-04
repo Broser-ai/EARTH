@@ -1,9 +1,12 @@
-import Fastify, { type FastifyError, type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyError, type FastifyInstance, type FastifyRequest } from 'fastify';
+import rateLimit from '@fastify/rate-limit';
 import type { Pool } from 'pg';
-import { DevelopmentAuthProvider } from './auth/development-provider.js';
+import { AuthError } from './auth/errors.js';
+import { createAuthProvider } from './auth/factory.js';
 import { registerAuthProvider } from './auth/register.js';
-import { AUTH_MODE_DEVELOPMENT } from './auth/types.js';
-import { DEVELOPMENT_MODE, modeEnvelope, modeError } from './http.js';
+import { AUTH_MODE_DEVELOPMENT, type AuthMode, type AuthProvider } from './auth/types.js';
+import { loadConfig, type EarthConfig } from './config.js';
+import { DEVELOPMENT_MODE, clientSafeErrorMessage, modeEnvelope, modeError } from './http.js';
 import {
   describeIntegration,
   INTEGRATION_FLAGS,
@@ -15,18 +18,39 @@ import { registerPrimeRoutes } from './prime/routes.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    earthAuthMode: import('./auth/types.js').AuthMode;
-    earthAuthProvider: import('./auth/types.js').AuthProvider | null;
+    earthAuthMode: AuthMode;
+    earthAuthProvider: AuthProvider | null;
+    earthOidcConfigured: boolean;
+    earthConfig: EarthConfig;
   }
 }
 
-export async function buildApp(pool?: Pool): Promise<FastifyInstance> {
+const CORS_ALLOW_HEADERS =
+  'Content-Type, Authorization, x-earth-org-id, x-earth-user-id, x-earth-user-role, x-request-id, x-correlation-id';
+
+export interface BuildAppOptions {
+  config?: EarthConfig;
+  authProvider?: AuthProvider;
+  oidcConfigured?: boolean;
+}
+
+export async function buildApp(pool?: Pool, options: BuildAppOptions = {}): Promise<FastifyInstance> {
+  const config = options.config ?? loadConfig();
   const app = Fastify({
-    logger: process.env.NODE_ENV !== 'test',
+    logger: loggerOption(config),
+    disableRequestLogging: config.nodeEnv === 'test',
   });
 
   app.decorate('earthAuthMode', AUTH_MODE_DEVELOPMENT);
   app.decorate('earthAuthProvider', null);
+  app.decorate('earthOidcConfigured', false);
+  app.decorate('earthConfig', config);
+
+  await app.register(rateLimit, {
+    max: config.rateLimitMax,
+    timeWindow: config.rateLimitWindowMs,
+    allowList: (request) => requestPath(request) === '/health',
+  });
 
   app.addContentTypeParser('application/json', { parseAs: 'string' }, (request, body, done) => {
     void request;
@@ -45,13 +69,7 @@ export async function buildApp(pool?: Pool): Promise<FastifyInstance> {
   });
 
   app.addHook('onRequest', async (request, reply) => {
-    const origin = typeof request.headers.origin === 'string' ? request.headers.origin : '*';
-    reply.header('Access-Control-Allow-Origin', origin);
-    reply.header(
-      'Access-Control-Allow-Headers',
-      'Content-Type, x-earth-org-id, x-earth-user-id, x-earth-user-role',
-    );
-    reply.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    applyCors(request, reply, config.corsOrigins);
     if (request.method === 'OPTIONS') {
       return reply.status(204).send();
     }
@@ -65,16 +83,32 @@ export async function buildApp(pool?: Pool): Promise<FastifyInstance> {
   });
 
   app.setErrorHandler((error: FastifyError, request, reply) => {
-    const status = typeof error.statusCode === 'number' && error.statusCode >= 400 ? error.statusCode : 500;
-    const code = status === 400 ? 'VALIDATION_ERROR' : 'INTERNAL_ERROR';
-    reply.status(status).send(modeError(request.server.earthAuthMode, code, error.message));
+    if (error instanceof AuthError) {
+      return reply
+        .status(error.status)
+        .send(modeError(request.server.earthAuthMode, error.code, error.message));
+    }
+    const status =
+      typeof error.statusCode === 'number' && error.statusCode >= 400 ? error.statusCode : 500;
+    const code = status === 400 ? 'VALIDATION_ERROR' : status === 429 ? 'RATE_LIMITED' : 'INTERNAL_ERROR';
+    reply
+      .status(status)
+      .send(
+        modeError(request.server.earthAuthMode, code, clientSafeErrorMessage(status, error.message)),
+      );
   });
 
   registerFoundationRoutes(app);
 
   if (pool) {
-    const provider = new DevelopmentAuthProvider(pool);
-    registerAuthProvider(app, provider);
+    const resolved = options.authProvider
+      ? {
+          provider: options.authProvider,
+          oidcConfigured: options.oidcConfigured ?? false,
+        }
+      : await createAuthProvider(pool, config);
+    registerAuthProvider(app, resolved.provider);
+    app.earthOidcConfigured = resolved.oidcConfigured;
     registerPrimeRoutes(app, pool);
   }
 
@@ -100,10 +134,15 @@ function registerFoundationRoutes(app: FastifyInstance): void {
     modeEnvelope(request.server.earthAuthMode, {
       service: SERVICE_NAME,
       version: SERVICE_VERSION,
-      environment: 'development',
+      environment: request.server.earthConfig.nodeEnv === 'production' ? 'production' : 'development',
       listen: '0.0.0.0',
       defaultPort: 3001,
-      integrations: { ...INTEGRATION_FLAGS },
+      productionReady: false,
+      integrations: {
+        ...INTEGRATION_FLAGS,
+        authentication: false,
+        oidcConfigured: request.server.earthOidcConfigured,
+      },
       integrationNotes: Object.fromEntries(
         (Object.keys(INTEGRATION_FLAGS) as Array<keyof typeof INTEGRATION_FLAGS>).map((name) => [
           name,
@@ -111,7 +150,60 @@ function registerFoundationRoutes(app: FastifyInstance): void {
         ]),
       ),
       routes: PRODUCT_ROUTES.map((route) => ({ ...route })),
-      note: 'DEVELOPMENT ONLY. Material Opportunity Intake v0.1 is local Postgres + deterministic stubs. No live LLM, recycler, ERP, SKAT, or SAP.',
+      note: infoNote(request.server.earthAuthMode, request.server.earthOidcConfigured),
     }),
   );
+}
+
+function infoNote(authMode: AuthMode, oidcConfigured: boolean): string {
+  if (authMode === AUTH_MODE_DEVELOPMENT) {
+    return 'DEVELOPMENT ONLY. Material Opportunity Intake v0.1 is local Postgres + deterministic stubs. No live LLM, recycler, ERP, SKAT, or SAP. Development headers are not production authentication.';
+  }
+  if (oidcConfigured) {
+    return 'OIDC JWT validation is initialized. Role and organization come from Postgres, not from token claims. Not production-ready. No live LLM, recycler, ERP, SKAT, or SAP.';
+  }
+  return 'Material Opportunity Intake v0.1. Not production-ready. No live LLM, recycler, ERP, SKAT, or SAP.';
+}
+
+function applyCors(
+  request: FastifyRequest,
+  reply: { header: (name: string, value: string) => unknown },
+  allowedOrigins: string[],
+): void {
+  reply.header('Vary', 'Origin');
+  reply.header('Access-Control-Allow-Headers', CORS_ALLOW_HEADERS);
+  reply.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+
+  const origin = typeof request.headers.origin === 'string' ? request.headers.origin : undefined;
+  if (!origin) {
+    return;
+  }
+  if (allowedOrigins.includes(origin)) {
+    reply.header('Access-Control-Allow-Origin', origin);
+    reply.header('Access-Control-Allow-Credentials', 'true');
+  }
+}
+
+function loggerOption(config: EarthConfig): boolean | { level: string; redact: string[] } {
+  if (config.nodeEnv === 'test') {
+    return false;
+  }
+  return {
+    level: 'info',
+    redact: [
+      'req.headers.authorization',
+      'req.headers.cookie',
+      'req.headers["x-earth-user-id"]',
+      'req.body.password',
+      'req.body.client_secret',
+      'req.body.refresh_token',
+      'req.body.access_token',
+      'req.body.id_token',
+      'req.body.token',
+    ],
+  };
+}
+
+function requestPath(request: FastifyRequest): string {
+  return request.url.split('?')[0] ?? request.url;
 }

@@ -1,21 +1,10 @@
 import { assertNever, type UserRole } from '../contracts.js';
 import { RoleForbiddenError } from './errors.js';
-import type { AuthenticatedActor } from './types.js';
 
-export function canReadIntake(role: UserRole): boolean {
-  switch (role) {
-    case 'OWNER':
-    case 'ESG_LEAD':
-    case 'OPERATIONS':
-    case 'REVIEWER':
-    case 'VIEWER':
-      return true;
-    default:
-      return assertNever(role);
-  }
-}
+const START_AND_RUN_ROLES: readonly UserRole[] = ['OWNER', 'ESG_LEAD', 'OPERATIONS'];
+const READ_ROLES: readonly UserRole[] = ['OWNER', 'ESG_LEAD', 'OPERATIONS', 'REVIEWER', 'VIEWER'];
 
-export function canWriteIntake(role: UserRole): boolean {
+export function canStartMaterialOpportunity(role: UserRole): boolean {
   switch (role) {
     case 'OWNER':
     case 'ESG_LEAD':
@@ -29,18 +18,79 @@ export function canWriteIntake(role: UserRole): boolean {
   }
 }
 
-export function assertCanReadIntake(actor: AuthenticatedActor): void {
-  if (!canReadIntake(actor.role)) {
+export function canRunDevelopmentTask(role: UserRole): boolean {
+  switch (role) {
+    case 'OWNER':
+    case 'ESG_LEAD':
+    case 'OPERATIONS':
+      return true;
+    case 'REVIEWER':
+    case 'VIEWER':
+      return false;
+    default:
+      return assertNever(role);
+  }
+}
+
+export function canReadSession(role: UserRole): boolean {
+  switch (role) {
+    case 'OWNER':
+    case 'ESG_LEAD':
+    case 'OPERATIONS':
+    case 'REVIEWER':
+    case 'VIEWER':
+      return true;
+    default:
+      return assertNever(role);
+  }
+}
+
+export function canReadAuditEvents(role: UserRole): boolean {
+  switch (role) {
+    case 'OWNER':
+    case 'ESG_LEAD':
+    case 'OPERATIONS':
+    case 'REVIEWER':
+    case 'VIEWER':
+      return true;
+    default:
+      return assertNever(role);
+  }
+}
+
+export function requireRole(role: UserRole, allowed: readonly UserRole[]): void {
+  if (!allowed.includes(role)) {
     throw new RoleForbiddenError(
-      `DEVELOPMENT ONLY: role ${actor.role} cannot read intake. Role is loaded from Postgres.`,
+      `role ${role} is not permitted for this action. Role is loaded from the provisioned account, not from the request body or headers.`,
     );
   }
 }
 
-export function assertCanWriteIntake(actor: AuthenticatedActor): void {
-  if (!canWriteIntake(actor.role)) {
-    throw new RoleForbiddenError(
-      `DEVELOPMENT ONLY: role ${actor.role} cannot mutate intake. Role is loaded from Postgres, not from x-earth-user-role.`,
-    );
+export function assertCanStartMaterialOpportunity(role: UserRole): void {
+  if (!canStartMaterialOpportunity(role)) {
+    requireRole(role, START_AND_RUN_ROLES);
   }
 }
+
+export function assertCanRunDevelopmentTask(role: UserRole): void {
+  if (!canRunDevelopmentTask(role)) {
+    requireRole(role, START_AND_RUN_ROLES);
+  }
+}
+
+export function assertCanReadSession(role: UserRole): void {
+  if (!canReadSession(role)) {
+    requireRole(role, READ_ROLES);
+  }
+}
+
+export function assertCanReadAuditEvents(role: UserRole): void {
+  if (!canReadAuditEvents(role)) {
+    requireRole(role, READ_ROLES);
+  }
+}
+
+/** @deprecated Use canReadSession. */
+export const canReadIntake = canReadSession;
+/** @deprecated Use canStartMaterialOpportunity / canRunDevelopmentTask. */
+export const canWriteIntake = canStartMaterialOpportunity;

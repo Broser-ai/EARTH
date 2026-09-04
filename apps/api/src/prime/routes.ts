@@ -2,7 +2,12 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
 import { z } from 'zod';
 import { AuthError } from '../auth/errors.js';
-import { assertCanReadIntake, assertCanWriteIntake } from '../auth/roles.js';
+import {
+  assertCanReadAuditEvents,
+  assertCanReadSession,
+  assertCanRunDevelopmentTask,
+  assertCanStartMaterialOpportunity,
+} from '../auth/roles.js';
 import { modeEnvelope, modeError } from '../http.js';
 import { PrimeService } from './service.js';
 import { PolicyError, type DataClassification, type StartOpportunityInput } from './types.js';
@@ -26,6 +31,9 @@ const startBodySchema = z.object({
   }),
   dataClassification: z.enum(['INTERNAL', 'CONFIDENTIAL', 'RESTRICTED']),
   organizationId: z.string().optional(),
+  role: z.string().optional(),
+  userId: z.string().optional(),
+  actorId: z.string().optional(),
 });
 
 export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
@@ -33,7 +41,7 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
 
   app.post('/v1/material-opportunities/start', async (request, reply) => {
     try {
-      assertCanWriteIntake(request.earthTenant.actor);
+      assertCanStartMaterialOpportunity(request.earthTenant.role);
     } catch (error) {
       return sendAuthError(request, reply, error);
     }
@@ -55,7 +63,7 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
 
   app.get('/v1/sessions/:sessionId', async (request, reply) => {
     try {
-      assertCanReadIntake(request.earthTenant.actor);
+      assertCanReadSession(request.earthTenant.role);
     } catch (error) {
       return sendAuthError(request, reply, error);
     }
@@ -72,7 +80,7 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
 
   app.get('/v1/sessions/:sessionId/audit-events', async (request, reply) => {
     try {
-      assertCanReadIntake(request.earthTenant.actor);
+      assertCanReadAuditEvents(request.earthTenant.role);
     } catch (error) {
       return sendAuthError(request, reply, error);
     }
@@ -89,7 +97,7 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
 
   app.post('/v1/sessions/:sessionId/run-next', async (request, reply) => {
     try {
-      assertCanWriteIntake(request.earthTenant.actor);
+      assertCanRunDevelopmentTask(request.earthTenant.role);
     } catch (error) {
       return sendAuthError(request, reply, error);
     }
@@ -110,8 +118,17 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
 }
 
 function toStartInput(data: z.infer<typeof startBodySchema>): StartOpportunityInput {
-  const { organizationId: _ignoredBodyOrg, ...fields } = data;
+  const {
+    organizationId: _ignoredBodyOrg,
+    role: _ignoredBodyRole,
+    userId: _ignoredBodyUser,
+    actorId: _ignoredBodyActor,
+    ...fields
+  } = data;
   void _ignoredBodyOrg;
+  void _ignoredBodyRole;
+  void _ignoredBodyUser;
+  void _ignoredBodyActor;
   return {
     idempotencyKey: fields.idempotencyKey,
     materialBatch: {

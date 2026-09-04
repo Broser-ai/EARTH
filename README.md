@@ -7,7 +7,7 @@ Standalone operations / ESG **prototype**. It is not Cirkel and does not import 
 What exists today:
 
 - A React / Vite SPA (`src/`) with **mock UI**. Screens that mention CSRD, recyclers, ERP, or assurance are copy, not live integrations. Command-bar badges are **DEVELOPMENT** / **DEMO**.
-- A first server-side workflow in `apps/api`: **Material Opportunity Intake v0.1**. It persists a session, bounded tasks, and audit events in PostgreSQL. Task runners are **deterministic stubs**. There is no real auth (development headers only). NanoChat is **NOT_CONFIGURED**.
+- A first server-side workflow in `apps/api`: **Material Opportunity Intake v0.1**. It persists a session, bounded tasks, and audit events in PostgreSQL. Task runners are **deterministic stubs**. Local identity is DEVELOPMENT headers (not production auth); OIDC JWT validation is optional when configured. NanoChat is **NOT_CONFIGURED**.
 - Foundation routes `GET /health` and `GET /v1/info` stay public. `/v1/info` flags intake as present and LLM/recycler/auth as absent.
 
 Details: [docs/FIRST_PROCESS_MATERIAL_OPPORTUNITY.md](docs/FIRST_PROCESS_MATERIAL_OPPORTUNITY.md)
@@ -48,7 +48,10 @@ Environment (never `VITE_*` secrets): copy `.env.example`.
 ```
 DATABASE_URL=postgres://earth:earth@localhost:5432/earth
 PORT=3001
+EARTH_AUTH_MODE=development
 ```
+
+OIDC (optional, not production-ready): `OIDC_ISSUER_URL`, `OIDC_AUDIENCE`, optional `OIDC_JWKS_URI`. Never `VITE_*` client secrets. See [docs/OIDC_AND_TENANT_ISOLATION.md](docs/OIDC_AND_TENANT_ISOLATION.md).
 
 ## PostgreSQL
 
@@ -99,4 +102,4 @@ curl -X POST http://localhost:3001/v1/material-opportunities/start \
   }'
 ```
 
-Those org/user UUIDs are a **DEVELOPMENT seed**, not production identities.
+Those org/user UUIDs are a **DEVELOPMENT seed**, not production identities. `x-earth-user-role` is ignored; org and role come from Postgres. Development headers remain DEVELOPMENT_ONLY and are not production authentication.

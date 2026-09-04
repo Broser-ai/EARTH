@@ -6,9 +6,9 @@ import { loadEnv } from './load-env.js';
 loadEnv();
 
 async function main(): Promise<void> {
-  const { host, port, databaseUrl } = loadConfig();
-  const pool = new Pool({ connectionString: requireDatabaseUrl(databaseUrl) });
-  const app = await buildApp(pool);
+  const config = loadConfig();
+  const pool = new Pool({ connectionString: requireDatabaseUrl(config.databaseUrl) });
+  const app = await buildApp(pool, { config });
 
   const shutdown = async (signal: string): Promise<void> => {
     app.log.info({ signal }, 'shutting down');
@@ -25,7 +25,7 @@ async function main(): Promise<void> {
   });
 
   try {
-    await app.listen({ host, port });
+    await app.listen({ host: config.host, port: config.port });
   } catch (error) {
     app.log.error(error);
     await pool.end();

@@ -93,6 +93,7 @@ export interface AuditEventView {
   taskId: string | null;
   actorType: ActorType;
   actorId: string;
+  authMode: string | null;
   eventType: string;
   previousState: string | null;
   nextState: string | null;
