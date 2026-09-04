@@ -5,6 +5,13 @@ import { BAND_ORDER, EARTH_ROUTES, type EarthBand, type EarthRoute } from '../ro
 import { EarthLink } from '../routing/EarthLink.tsx';
 import { useRouter } from '../routing/Router.tsx';
 import { formatCanonical } from '../routing/resolve.ts';
+import { presenceLabel, presenceTone, probeAdapters, type AdapterId } from '../routing/kernelProbe.ts';
+import { useEarthRuntime } from '../sovereign/runtime/EarthRuntimeContext.tsx';
+
+const ADAPTER_FOR_PATH: Record<string, AdapterId[]> = {
+  '/mission/vision': ['roboflow'],
+  '/mission/prime': ['inkling', 'tinker'],
+};
 
 function bandLabel(band: EarthBand): string {
   switch (band) {
@@ -33,6 +40,8 @@ function bandLabel(band: EarthBand): string {
 
 export default function UplinkManifest({ compact = false }: { compact?: boolean }) {
   const { origin, path, navigate } = useRouter();
+  const { runtime } = useEarthRuntime();
+  const adapters = probeAdapters(runtime);
   const [copied, setCopied] = useState<string | null>(null);
 
   async function copyPath(route: EarthRoute) {
@@ -56,7 +65,8 @@ export default function UplinkManifest({ compact = false }: { compact?: boolean 
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-text-secondary">
             How the URL looks now on this origin. Address bar is the station callsign. Unknown
-            paths render Unknown station — they never fall back to Overview.
+            paths render Unknown station — they never fall back to Overview. Tinker, Inkling, and
+            Roboflow are in-tab stubs until a server-side adapter is attached.
           </p>
         </div>
         <div className="rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2 font-mono text-[11px] text-text-secondary">
@@ -74,6 +84,7 @@ export default function UplinkManifest({ compact = false }: { compact?: boolean 
               {routes.map((route) => {
                 const url = formatCanonical(origin, route.path);
                 const active = path === route.path;
+                const slotIds = ADAPTER_FOR_PATH[route.path] ?? [];
                 return (
                   <article
                     key={route.path}
@@ -121,6 +132,28 @@ export default function UplinkManifest({ compact = false }: { compact?: boolean 
                     </div>
                     {copied === route.path && (
                       <p className="mt-2 font-mono text-[10px] tracking-wider text-success">COPIED</p>
+                    )}
+                    {slotIds.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {slotIds.map((id) => {
+                          const adapter = adapters.find((row) => row.id === id);
+                          if (!adapter) return null;
+                          const tone = presenceTone(adapter.presence);
+                          return (
+                            <span
+                              key={id}
+                              className={clsx(
+                                'rounded border px-1.5 py-0.5 font-mono text-[9px] tracking-wider',
+                                tone === 'success' && 'border-success/30 bg-success/10 text-success',
+                                tone === 'amber' && 'border-amber/30 bg-amber/10 text-amber',
+                                tone === 'muted' && 'border-white/10 bg-white/[0.03] text-text-muted',
+                              )}
+                            >
+                              {adapter.product} · {presenceLabel(adapter.presence)}
+                            </span>
+                          );
+                        })}
+                      </div>
                     )}
                   </article>
                 );

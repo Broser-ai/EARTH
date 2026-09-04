@@ -33,6 +33,8 @@ import AegisProtocol from '../pages/AegisProtocol';
 import WarGame from '../pages/WarGame';
 import ChronosOracle from '../pages/ChronosOracle';
 import HyperMatrix from '../pages/HyperMatrix';
+import VisionSurface from '../pages/VisionSurface';
+import PrimePolicy from '../pages/PrimePolicy';
 import Uplink from '../pages/Uplink';
 
 export const PAGE_COMPONENTS: Record<EarthPageId, () => JSX.Element> = {
@@ -68,5 +70,7 @@ export const PAGE_COMPONENTS: Record<EarthPageId, () => JSX.Element> = {
   'war-game': WarGame,
   chronos: ChronosOracle,
   'hyper-matrix': HyperMatrix,
+  vision: VisionSurface,
+  prime: PrimePolicy,
   uplink: Uplink,
 };

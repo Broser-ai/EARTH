@@ -22,6 +22,11 @@ import {
 
 export type { EarthSection };
 
+export interface CommandBarProps {
+  hitlPending?: number;
+  runtimeOnline?: boolean;
+}
+
 interface NavItem {
   id: EarthSection;
   label: string;
@@ -40,7 +45,7 @@ const NAV: NavItem[] = [
 const tenantName = DEMO_TENANT.name;
 const tenantInitials = DEMO_TENANT.initials;
 
-export default function CommandBar() {
+export default function CommandBar({ hitlPending = 0, runtimeOnline = false }: CommandBarProps) {
   const { match, canonical, copyCanonical, navigate, path } = useRouter();
   const [copied, setCopied] = useState(false);
   const [uplinkOpen, setUplinkOpen] = useState(false);
@@ -147,6 +152,26 @@ export default function CommandBar() {
             )}
           </div>
 
+          <span
+            className={clsx(
+              'flex items-center gap-1.5 font-mono text-[10px] tracking-wider',
+              runtimeOnline ? 'text-success' : 'text-text-muted',
+            )}
+            title="In-tab sovereign runtime — not the Postgres control plane"
+          >
+            <span
+              className={clsx(
+                'h-1.5 w-1.5 rounded-full',
+                runtimeOnline ? 'animate-pulse bg-success' : 'bg-text-muted',
+              )}
+            />
+            {runtimeOnline ? 'RUNTIME' : 'COLD'}
+          </span>
+          {hitlPending > 0 && (
+            <span className="rounded border border-amber/30 bg-amber/10 px-2 py-0.5 font-mono text-[10px] text-amber">
+              HITL {hitlPending}
+            </span>
+          )}
           <TruthBadge kind="DEVELOPMENT" />
           <TruthBadge kind="DEMO" />
           <span className="text-[11px] text-text-secondary" title={DEMO_TENANT.note}>

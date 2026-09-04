@@ -34,6 +34,14 @@ describe('resolvePath', () => {
     const aegis = resolvePath('/mission/aegis/');
     expect(aegis.kind).toBe('known');
     if (aegis.kind === 'known') expect(aegis.route.pageId).toBe('aegis');
+
+    const vision = resolvePath('/mission/vision');
+    expect(vision.kind).toBe('known');
+    if (vision.kind === 'known') expect(vision.route.pageId).toBe('vision');
+
+    const prime = resolvePath('/mission/prime');
+    expect(prime.kind).toBe('known');
+    if (prime.kind === 'known') expect(prime.route.pageId).toBe('prime');
   });
 
   it('maps ops / carbon / intake / uplink grammar', () => {
@@ -113,5 +121,8 @@ describe('formatCanonical', () => {
     expect(formatCanonical('http://localhost:5180/', '/')).toBe('http://localhost:5180/');
     expect(formatCanonical('http://localhost:5180', '/carbon')).toBe('http://localhost:5180/carbon');
     expect(formatCanonical('http://localhost:5180', '/uplink')).toBe('http://localhost:5180/uplink');
+    expect(formatCanonical('http://localhost:5180', '/mission/vision')).toBe(
+      'http://localhost:5180/mission/vision',
+    );
   });
 });

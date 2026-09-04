@@ -40,6 +40,8 @@ export type EarthPageId =
   | 'war-game'
   | 'chronos'
   | 'hyper-matrix'
+  | 'vision'
+  | 'prime'
   | 'uplink';
 
 export type EarthBand =
@@ -304,7 +306,7 @@ export const EARTH_ROUTES: readonly EarthRoute[] = [
     band: 'MISSION',
     callsign: 'COMMAND',
     label: 'Command center',
-    blurb: 'Sovereign HUD mock — client-side DEMO',
+    blurb: 'In-tab kernel HUD — extra runtime, not the Postgres control plane',
   },
   {
     path: '/mission/swarm',
@@ -313,7 +315,7 @@ export const EARTH_ROUTES: readonly EarthRoute[] = [
     band: 'MISSION',
     callsign: 'SWARM',
     label: 'Dev swarm',
-    blurb: 'MOSS pipeline animation — not LangGraph/RL',
+    blurb: 'In-tab Prime → H-Agent → S-Agents — not a durable session',
   },
   {
     path: '/mission/aegis',
@@ -322,7 +324,7 @@ export const EARTH_ROUTES: readonly EarthRoute[] = [
     band: 'MISSION',
     callsign: 'AEGIS',
     label: 'Aegis ledger',
-    blurb: 'Client-side hash animation — not a proof system',
+    blurb: 'In-tab DID + SHA-256 hash chain — not a ZK prover',
   },
   {
     path: '/mission/wargame',
@@ -331,7 +333,7 @@ export const EARTH_ROUTES: readonly EarthRoute[] = [
     band: 'MISSION',
     callsign: 'WARGAME',
     label: 'War game',
-    blurb: 'DEMO crisis walkthrough',
+    blurb: 'DEMO COMPASS deny / allow crisis — in-tab runtime',
   },
   {
     path: '/mission/chronos',
@@ -350,6 +352,24 @@ export const EARTH_ROUTES: readonly EarthRoute[] = [
     callsign: 'MATRIX',
     label: 'Hyper-Matrix',
     blurb: 'DEMO SDE ticker',
+  },
+  {
+    path: '/mission/vision',
+    pageId: 'vision',
+    section: 'mission',
+    band: 'MISSION',
+    callsign: 'VISION',
+    label: 'Vision',
+    blurb: 'Roboflow adapter stub — in-tab observations, no live camera',
+  },
+  {
+    path: '/mission/prime',
+    pageId: 'prime',
+    section: 'mission',
+    band: 'MISSION',
+    callsign: 'PRIME',
+    label: 'Prime policy',
+    blurb: 'Inkling + Tinker stubs — untrained until weights exist',
   },
   {
     path: '/uplink',
