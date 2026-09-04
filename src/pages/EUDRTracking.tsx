@@ -325,7 +325,7 @@ export default function EUDRTracking() {
               Upload file
             </button>
             <button className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 font-mono text-[11px] text-[#F1F5F9] hover:border-white/20">
-              Connect ERP / SAP
+              Connect ERP / SAP (DEMO — not connected)
             </button>
             <button
               onClick={() => setImportOpen(false)}

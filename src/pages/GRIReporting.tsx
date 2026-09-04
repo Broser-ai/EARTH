@@ -71,7 +71,7 @@ export default function GRIReporting() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-base font-medium text-[#E2E8F0]">GRI Reporting</h1>
-          <p className="text-[11px] text-[#94A3B8]">GRI 2021 Standards · 88% complete</p>
+          <p className="text-[11px] text-[#94A3B8]">DEMO GRI 2021 layout · 88% is scenario completeness, not a published index</p>
         </div>
         <div className="flex items-center gap-2">
           <button className="flex items-center gap-1 rounded-md border border-white/[0.06] bg-white/[0.03] px-3 py-1.5 text-[10px] text-[#94A3B8]"><Download size={12} />Content Index (PDF)</button>

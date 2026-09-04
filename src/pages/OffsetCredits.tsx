@@ -22,7 +22,7 @@ const PORTFOLIO = [
 ];
 
 const RETIREMENTS = [
-  { date: 'Aug 15, 2026', credits: 200, purpose: 'CSRD annual reporting', project: 'Amazon REDD+' },
+  { date: 'Aug 15, 2026', credits: 200, purpose: 'DEMO CSRD illustration (not a filing)', project: 'Amazon REDD+' },
   { date: 'Sep 30, 2026', credits: 150, purpose: 'Voluntary net-zero commitment', project: 'Nordic Biochar' },
   { date: 'Oct 15, 2026', credits: 300, purpose: 'Customer offset program', project: 'Kenya Cookstoves' },
   { date: 'Dec 31, 2026', credits: 500, purpose: 'Annual retirement schedule', project: 'Various' },
@@ -57,7 +57,7 @@ export default function OffsetCredits() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-base font-medium text-[#E2E8F0]">Offset Credits</h1>
-          <p className="text-[11px] text-[#94A3B8]">Carbon credit portfolio management</p>
+          <p className="text-[11px] text-[#94A3B8]">DEMO portfolio — not purchased, retired, or registry-held credits</p>
         </div>
         <div className="flex items-center gap-2">
           <button className="flex items-center gap-1 rounded-md border border-white/[0.06] bg-white/[0.03] px-3 py-1.5 text-[10px] text-[#94A3B8]"><Download size={12} />Export</button>

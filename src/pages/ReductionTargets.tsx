@@ -141,12 +141,12 @@ const INITIATIVES: Initiative[] = [
 ];
 
 const VALIDATION_STEPS: { label: ValidationStatus; date: string }[] = [
-  { label: 'Submitted', date: '2026-02-14' },
-  { label: 'Under review', date: 'In progress' },
-  { label: 'Validated', date: 'Pending' },
+  { label: 'Submitted', date: 'DEMO — not submitted' },
+  { label: 'Under review', date: 'DEMO — no SBTi ticket' },
+  { label: 'Validated', date: 'Not validated' },
 ];
 
-const CURRENT_VALIDATION: ValidationStatus = 'Under review';
+const CURRENT_VALIDATION: ValidationStatus = 'Submitted';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -229,7 +229,7 @@ export default function ReductionTargets() {
             REDUCTION TARGETS
           </h1>
           <p className="mt-1 text-xs text-[#94A3B8]">
-            Science-based targets aligned with the SBTi Corporate Net-Zero Standard
+            DEMO target illustration — not SBTi-validated, not a 1.5°C commitment
           </p>
         </div>
         <button
@@ -253,13 +253,13 @@ export default function ReductionTargets() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-mono text-xl font-bold text-[#F1F5F9]">Net zero by 2045</h2>
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#34D399]/30 bg-[#34D399]/10 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wide text-[#34D399]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#F59E0B]/30 bg-[#F59E0B]/10 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wide text-[#F59E0B]">
                   <BadgeCheck className="h-3 w-3" />
-                  SBTi
+                  SBTi DEMO
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#60A5FA]/30 bg-[#60A5FA]/10 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wide text-[#60A5FA]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wide text-[#94A3B8]">
                   <Thermometer className="h-3 w-3" />
-                  1.5°C aligned
+                  not 1.5°C validated
                 </span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-4 font-mono text-[11px] text-[#94A3B8]">
@@ -419,7 +419,7 @@ export default function ReductionTargets() {
               EMISSIONS TRAJECTORY
             </span>
             <span className="ml-auto font-mono text-[10px] text-[#475569]">
-              Actual vs. SBTi-required linear pathway
+              DEMO pathway — not an SBTi-required trajectory
             </span>
           </div>
           <div className="flex h-64 w-full flex-col items-center justify-center gap-3 rounded-md border border-dashed border-white/10 bg-white/[0.02]">
@@ -446,7 +446,7 @@ export default function ReductionTargets() {
           <div className="mb-4 flex items-center gap-2">
             <ShieldCheck className="h-3.5 w-3.5 text-[#60A5FA]" />
             <span className="font-mono text-xs font-semibold tracking-wide text-[#F1F5F9]">
-              SBTi VALIDATION STATUS
+              SBTi VALIDATION (DEMO)
             </span>
           </div>
           <div className="space-y-3">
@@ -481,8 +481,8 @@ export default function ReductionTargets() {
           </div>
           <div className="mt-4 rounded-md border border-[#F59E0B]/20 bg-[#F59E0B]/5 p-3">
             <p className="font-mono text-[10px] leading-relaxed text-[#94A3B8]">
-              Near- and long-term targets submitted for SBTi validation against the 1.5°C
-              Corporate Net-Zero Standard. Expected decision within 30 business days.
+              DEMO illustration only. No targets have been submitted to SBTi. This SPA
+              does not claim 1.5°C alignment, validation, or a net-zero commitment.
             </p>
           </div>
         </Card>

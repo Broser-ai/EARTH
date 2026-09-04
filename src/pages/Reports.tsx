@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { FileText, Leaf, Trash2, RefreshCw, Users, BarChart3, Plus, Download, Calendar, Mail, ToggleLeft, ToggleRight } from 'lucide-react';
 
 const TEMPLATES = [
-  { icon: FileText, title: 'CSRD Annual Report', desc: 'EU CSRD-compliant sustainability report with ESRS disclosures', lastRun: 'Jun 15, 2026', format: 'PDF' },
+  { icon: FileText, title: 'CSRD Annual Report', desc: 'DEMO template — not an EU CSRD-compliant filing', lastRun: 'never', format: 'PDF' },
   { icon: Leaf, title: 'Carbon Footprint', desc: 'Scope 1/2/3 emissions with GHG Protocol methodology', lastRun: 'Jul 1, 2026', format: 'PDF + Excel' },
   { icon: Trash2, title: 'Waste Operations', desc: 'Monthly waste streams, recycling rates, cost analysis', lastRun: 'Jul 31, 2026', format: 'Excel' },
   { icon: RefreshCw, title: 'Circular Impact', desc: 'Take-back programs, material recovery, circularity metrics', lastRun: 'Jul 15, 2026', format: 'PDF' },
@@ -26,15 +26,15 @@ const SCHEDULED = [
   { name: 'Weekly Waste Summary', schedule: 'Every Monday 08:00', format: 'PDF', recipients: 'ops@hornbach.de', active: true },
   { name: 'Monthly Carbon Report', schedule: '1st of month', format: 'Excel', recipients: 'sustainability@hornbach.de', active: true },
   { name: 'Quarterly Compliance', schedule: 'Q-end + 5 days', format: 'PDF', recipients: 'compliance@hornbach.de, board@hornbach.de', active: true },
-  { name: 'Annual CSRD', schedule: 'Dec 15', format: 'PDF + Excel', recipients: 'board@hornbach.de, audit@kpmg.de', active: false },
+  { name: 'Annual CSRD', schedule: 'Dec 15', format: 'PDF + Excel', recipients: 'DEMO — no auditor mailbox', active: false },
 ];
 
 const DATA_SOURCES = [
-  { name: 'Waste Operations', lastSync: '2 min ago', fresh: true },
-  { name: 'Carbon Accounting', lastSync: 'Real-time', fresh: true },
-  { name: 'Compliance Module', lastSync: '15 min ago', fresh: true },
-  { name: 'Supplier Portal', lastSync: '2 hours ago', fresh: false },
-  { name: 'Product Registry', lastSync: '6 hours ago', fresh: false },
+  { name: 'Waste Operations', lastSync: 'DEMO — no sync', fresh: false },
+  { name: 'Carbon Accounting', lastSync: 'DEMO fixtures', fresh: false },
+  { name: 'Compliance Module', lastSync: 'DEMO — no module', fresh: false },
+  { name: 'Supplier Portal', lastSync: 'not connected', fresh: false },
+  { name: 'Product Registry', lastSync: 'not connected', fresh: false },
 ];
 
 const typeBadge: Record<string, string> = {
@@ -61,7 +61,7 @@ export default function Reports() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-base font-medium text-[#E2E8F0]">Reports</h1>
-          <p className="text-[11px] text-[#94A3B8]">Generate, schedule, and manage compliance and operational reports</p>
+          <p className="text-[11px] text-[#94A3B8]">DEMO report catalog — no generated filings, no KPMG mailbox</p>
         </div>
         <button className="flex items-center gap-1.5 rounded-md bg-[#60A5FA] px-3 py-1.5 text-[10px] font-medium text-[#060B18]">
           <Plus size={12} />New Report

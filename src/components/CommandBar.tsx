@@ -1,5 +1,7 @@
 import { Activity } from 'lucide-react';
 import clsx from 'clsx';
+import TruthBadge from './TruthBadge';
+import { DEMO_TENANT } from '../demo/canonical';
 
 export type EarthSection =
   | 'overview'
@@ -23,8 +25,8 @@ const navItems: { id: EarthSection; label: string }[] = [
   { id: 'reports', label: 'REPORTS' },
 ];
 
-const tenantName = 'Hornbach Germany';
-const tenantInitials = 'HB';
+const tenantName = DEMO_TENANT.name;
+const tenantInitials = DEMO_TENANT.initials;
 
 export default function CommandBar({ activeSection, onNavigate }: CommandBarProps) {
   return (
@@ -54,7 +56,11 @@ export default function CommandBar({ activeSection, onNavigate }: CommandBarProp
       </div>
 
       <div className="flex items-center gap-3">
-        <span className="text-[11px] text-text-secondary">{tenantName}</span>
+        <TruthBadge kind="DEVELOPMENT" />
+        <TruthBadge kind="DEMO" />
+        <span className="text-[11px] text-text-secondary" title={DEMO_TENANT.note}>
+          {tenantName}
+        </span>
         <div className="flex h-[28px] w-[28px] items-center justify-center rounded-full bg-accent/10">
           <span className="font-mono text-[10px] font-bold text-accent">{tenantInitials}</span>
         </div>

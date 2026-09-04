@@ -145,10 +145,9 @@ function FheCard() {
 
   return (
     <Card>
-      <SectionLabel icon={Lock} title="FHE Compute Engine" accent="#60A5FA" />
+      <SectionLabel icon={Lock} title="FHE Compute Engine (DEMO)" accent="#F59E0B" />
       <p className="text-[#94A3B8] text-xs mb-4 leading-relaxed">
-        Fully Homomorphic Encryption — compute directly on ciphertext, plaintext
-        never touches memory.
+        Not encryption. Noise meter and scheme names are UI theatre — no ciphertext is processed.
       </p>
 
       <div className="grid grid-cols-2 gap-3 mb-4">
@@ -243,10 +242,9 @@ function MutationCard() {
 
   return (
     <Card>
-      <SectionLabel icon={Boxes} title="Polymorphic Mutation Engine" accent="#34D399" />
+      <SectionLabel icon={Boxes} title="Polymorphic Mutation Engine (DEMO)" accent="#F59E0B" />
       <p className="text-[#94A3B8] text-xs mb-4 leading-relaxed">
-        Continuously rotates internal topology to invalidate reconnaissance and
-        stale exploits.
+        Not a mutation engine. Topology hashes are random hex — no code is rotated.
       </p>
 
       <button
@@ -343,16 +341,16 @@ function ZkCard() {
 
   return (
     <Card>
-      <SectionLabel icon={Atom} title="Post-Quantum ZK-STARKs" accent="#60A5FA" />
+      <SectionLabel icon={Atom} title="DEMO ZK-STARK theatre" accent="#F59E0B" />
       <p className="text-[#94A3B8] text-xs mb-4 leading-relaxed">
-        Transparent, quantum-resistant proofs — no trusted setup, hash-based
-        soundness.
+        Not a proof system. Hashes are <span className="font-mono text-[#F59E0B]">Math.random()</span> —
+        no STARK, no verifier, no soundness.
       </p>
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="rounded-md border border-white/5 bg-black/20 p-2.5">
           <div className="font-mono text-[10px] text-[#475569] mb-1">SECURITY LEVEL</div>
-          <div className="font-mono text-[11px] text-[#60A5FA]">NIST-PQC-L5</div>
+          <div className="font-mono text-[11px] text-[#F59E0B]">DEMO — not NIST</div>
         </div>
         <div className="rounded-md border border-white/5 bg-black/20 p-2.5">
           <div className="font-mono text-[10px] text-[#475569] mb-1">SECURITY BITS</div>
@@ -376,13 +374,13 @@ function ZkCard() {
             Generating Proof…
           </span>
         ) : (
-          'Generate Proof'
+          'Generate fake proof'
         )}
       </button>
 
       <div className="mb-3 space-y-1.5">
-        <StatRow label="Proofs generated" value={count.toLocaleString()} />
-        <StatRow label="Verification rate" value="99.998%" />
+        <StatRow label="Fake proofs generated" value={count.toLocaleString()} />
+        <StatRow label="Verification rate" value="n/a — not a verifier" />
       </div>
 
       <div className="flex-1 min-h-0">
@@ -432,7 +430,7 @@ const THREATS = [
 function ThreatMatrix() {
   return (
     <Card>
-      <SectionLabel icon={Radar} title="Threat Matrix — Current Protection Level" accent="#94A3B8" />
+      <SectionLabel icon={Radar} title="Threat Matrix — DEMO gauges" accent="#94A3B8" />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {THREATS.map((t) => (
           <div key={t.name}>
@@ -456,31 +454,31 @@ function ThreatMatrix() {
 function StatusBanner() {
   return (
     <motion.div
-      className="relative rounded-lg border border-[#34D399]/30 bg-white/[0.03] backdrop-blur px-5 py-4 mb-6 overflow-hidden"
+      className="relative rounded-lg border border-[#F59E0B]/30 bg-white/[0.03] backdrop-blur px-5 py-4 mb-6 overflow-hidden"
       animate={{
         boxShadow: [
-          '0 0 0px rgba(52,211,153,0.0)',
-          '0 0 22px rgba(52,211,153,0.35)',
-          '0 0 0px rgba(52,211,153,0.0)',
+          '0 0 0px rgba(245,158,11,0.0)',
+          '0 0 18px rgba(245,158,11,0.25)',
+          '0 0 0px rgba(245,158,11,0.0)',
         ],
       }}
       transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
     >
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <ShieldCheck size={20} className="text-[#34D399]" />
+          <ShieldCheck size={20} className="text-[#F59E0B]" />
           <div>
-            <div className="font-mono text-sm tracking-widest text-[#34D399]">
-              DEFENSE GRID: ACTIVE
+            <div className="font-mono text-sm tracking-widest text-[#F59E0B]">
+              DEFENSE GRID: DEMO SIMULATION
             </div>
             <div className="font-mono text-[10px] text-[#475569]">
-              AEGIS PROTOCOL // FHE + POLYMORPHIC MUTATION + POST-QUANTUM ZK
+              NOT A PROOF SYSTEM // client animation only
             </div>
           </div>
         </div>
         <div className="flex items-center gap-4 font-mono text-[10px] text-[#94A3B8]">
           <span className="flex items-center gap-1.5">
-            <KeyRound size={12} className="text-[#60A5FA]" /> keys rotated 4s ago
+            <KeyRound size={12} className="text-[#60A5FA]" /> DEMO keys (not rotated)
           </span>
           <span className="flex items-center gap-1.5">
             <Zap size={12} className="text-[#F59E0B]" /> latency +0.8ms
@@ -506,8 +504,8 @@ export default function AegisProtocol() {
             </h1>
           </div>
           <p className="text-[#94A3B8] text-sm">
-            Fully homomorphic encryption, polymorphic code mutation, and
-            post-quantum ZK-STARK verification — layered defense-in-depth.
+            DEMO visualization — not FHE, not polymorphic mutation, not ZK-STARK
+            verification. No cryptographic protocol is running.
           </p>
         </div>
 

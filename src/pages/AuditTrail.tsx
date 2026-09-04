@@ -56,7 +56,7 @@ interface AuditRow {
 
 const AUDIT_ROWS: AuditRow[] = [
   { id: 'EV-99201', timestamp: 'Jul 31, 14:32', user: 'Sarah Mueller', action: 'Created', module: 'Operations', resource: 'Pickup order #PU-4821', details: 'Berlin Tempelhof, Mixed plastics 2.4t', ip: '192.168.1.42' },
-  { id: 'EV-99198', timestamp: 'Jul 31, 14:18', user: 'System', action: 'Auto-generated', module: 'Compliance', resource: 'CSRD report Q3', details: '94% completion, 3 items remaining', ip: '—' },
+  { id: 'EV-99198', timestamp: 'Jul 31, 14:18', user: 'System', action: 'Auto-generated', module: 'Compliance', resource: 'CSRD report Q3 (DEMO)', details: 'DEMO 94% scenario completeness — not a filing', ip: '—' },
   { id: 'EV-99192', timestamp: 'Jul 31, 13:47', user: 'Michael Ambrosius', action: 'Approved', module: 'Circular', resource: 'OEM contract renewal', details: 'Bosch Power Tools, €38–142 credit range', ip: '10.0.1.15' },
   { id: 'EV-99187', timestamp: 'Jul 31, 13:22', user: 'Thomas Weber', action: 'Updated', module: 'Carbon', resource: 'Scope 3 data', details: 'Category 1: Purchased goods, +412 tCO2e', ip: '192.168.1.87' },
   { id: 'EV-99181', timestamp: 'Jul 31, 12:58', user: 'System', action: 'Triggered', module: 'Operations', resource: 'Route optimization', details: 'Route BER-01, saved 142km (-18%)', ip: '—' },
@@ -206,7 +206,7 @@ export default function AuditTrail() {
         <div>
           <h1 className="font-mono text-lg font-bold tracking-widest text-[#F1F5F9]">AUDIT TRAIL</h1>
           <p className="mt-1 text-xs text-[#94A3B8]">
-            Complete activity log for compliance and transparency — every platform action is recorded
+            DEMO event table — not a live audit log, not retained, not tamper-proof
           </p>
         </div>
         <button
@@ -376,9 +376,8 @@ export default function AuditTrail() {
       <Card className="mt-6 flex flex-wrap items-center gap-3 p-4">
         <Hash className="h-4 w-4 shrink-0 text-[#34D399]" />
         <p className="text-xs text-[#94A3B8]">
-          All audit logs retained for <span className="text-[#F1F5F9]">7 years</span> per CSRD Article 19a
-          requirements. Tamper-proof storage with{' '}
-          <span className="font-mono text-[#34D399]">SHA-256</span> hash verification.
+          All audit rows are DEMO fixtures. This SPA does not retain logs, does not
+          implement CSRD Article 19a, and does not provide tamper-proof storage.
         </p>
       </Card>
     </div>

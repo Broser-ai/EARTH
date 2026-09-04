@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Clock,
 } from 'lucide-react';
+import TruthBadge from '../components/TruthBadge';
 import clsx from 'clsx';
 
 // ---------------------------------------------------------------------------
@@ -26,6 +27,7 @@ interface Integration {
   description: string;
   icon: typeof Database;
   connected: boolean;
+  demo: boolean;
   detail: string;
   meta?: string;
 }
@@ -48,18 +50,18 @@ const INTEGRATIONS: Integration[] = [
     name: 'SAP S/4HANA',
     description: 'ERP core — material movements & finance postings',
     icon: Database,
-    connected: true,
-    detail: 'Last sync 4 min ago',
-    meta: '847 transactions today',
+    connected: false,
+    demo: true,
+    detail: 'DEMO catalog — not connected',
   },
   {
     id: 'netsuite',
     name: 'Oracle NetSuite',
     description: 'Order management & inventory sync',
     icon: Cloud,
-    connected: true,
-    detail: 'Webhook active',
-    meta: '3 events queued',
+    connected: false,
+    demo: true,
+    detail: 'DEMO catalog — not connected',
   },
   {
     id: 'salesforce',
@@ -67,41 +69,42 @@ const INTEGRATIONS: Integration[] = [
     description: 'CRM sync for take-back program leads',
     icon: Building2,
     connected: false,
-    detail: 'Not connected',
+    demo: true,
+    detail: 'DEMO catalog — not connected',
   },
   {
     id: 'datev',
     name: 'DATEV',
     description: 'Financial reporting & tax export',
     icon: FileSpreadsheet,
-    connected: true,
-    detail: 'Monthly export scheduled',
-    meta: 'Next run 1 Aug 2026',
+    connected: false,
+    demo: true,
+    detail: 'DEMO catalog — not connected',
   },
   {
     id: 'm365',
     name: 'Microsoft 365',
     description: 'Single sign-on & directory sync',
     icon: Boxes,
-    connected: true,
-    detail: 'SSO active',
-    meta: '24 seats provisioned',
+    connected: false,
+    demo: true,
+    detail: 'DEMO catalog — not connected',
   },
   {
     id: 'slack',
     name: 'Slack',
     description: 'Operational alerts & maintenance notices',
     icon: MessageSquare,
-    connected: true,
-    detail: 'Alerts channel configured',
-    meta: '#earth-alerts',
+    connected: false,
+    demo: true,
+    detail: 'DEMO catalog — not connected',
   },
 ];
 
 const API_KEYS: ApiKey[] = [
-  { id: 'key-prod', label: 'Production API key', masked: 'sk_live_••••••••••••7f3a', created: '2026-03-12', lastUsed: '2026-07-31 08:14' },
-  { id: 'key-sandbox', label: 'Sandbox API key', masked: 'sk_test_••••••••••••b912', created: '2026-04-02', lastUsed: '2026-07-29 16:40' },
-  { id: 'key-webhook', label: 'Webhook signing secret', masked: 'whsec_••••••••••••de08', created: '2026-05-18', lastUsed: '2026-07-31 07:52' },
+  { id: 'key-prod', label: 'DEMO API key (placeholder)', masked: 'sk_demo_••••••••••••xxxx', created: '—', lastUsed: 'never' },
+  { id: 'key-sandbox', label: 'DEMO sandbox key (placeholder)', masked: 'sk_demo_••••••••••••xxxx', created: '—', lastUsed: 'never' },
+  { id: 'key-webhook', label: 'DEMO webhook secret (placeholder)', masked: 'whsec_••••••••••••xxxx', created: '—', lastUsed: 'never' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -129,6 +132,7 @@ export default function IntegrationsSettings() {
           <span className="font-mono text-sm text-text-secondary">
             {connectedCount} of {INTEGRATIONS.length} systems connected
           </span>
+          <TruthBadge kind="DEMO" />
         </div>
 
         <button className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 font-mono text-xs font-semibold tracking-wider text-accent transition-all hover:bg-accent/20">
@@ -181,12 +185,10 @@ export default function IntegrationsSettings() {
                 </div>
               ) : (
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-1 font-mono text-[10px] font-semibold text-text-muted">
-                    NOT CONNECTED
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber/10 px-2.5 py-1 font-mono text-[10px] font-semibold text-amber">
+                    DEMO — NOT CONNECTED
                   </span>
-                  <button className="rounded-md border border-accent/30 bg-accent/10 px-3 py-1.5 font-mono text-[10px] font-semibold tracking-wide text-accent transition-all hover:bg-accent/20">
-                    CONNECT
-                  </button>
+                  <p className="text-[10px] text-text-muted">{integration.detail}</p>
                 </div>
               )}
             </div>
@@ -202,6 +204,7 @@ export default function IntegrationsSettings() {
             <span className="font-mono text-[11px] font-semibold tracking-wider text-text-primary">
               API KEYS
             </span>
+            <TruthBadge kind="DEMO" className="ml-1" />
           </div>
           <div className="flex flex-col gap-2.5">
             {API_KEYS.map((key) => (
@@ -245,7 +248,7 @@ export default function IntegrationsSettings() {
               <input
                 type="text"
                 readOnly
-                value="https://hooks.earth-platform.io/hornbach/inbound"
+                value="https://example.invalid/demo/webhooks (not a live endpoint)"
                 className="w-full rounded-md border border-border bg-white/[0.03] px-3 py-2 font-mono text-[11px] text-text-secondary focus:border-accent/40 focus:outline-none"
               />
             </div>
@@ -266,8 +269,8 @@ export default function IntegrationsSettings() {
             </div>
             <div className="flex items-center justify-between rounded-md border border-border bg-white/[0.02] px-3 py-2.5">
               <span className="flex items-center gap-2 text-[11px] text-text-secondary">
-                <RefreshCw className="h-3 w-3 text-success" />
-                Delivery status: healthy · 99.8% success (30d)
+                <RefreshCw className="h-3 w-3 text-amber" />
+                Delivery status: DEMO — no webhook listener
               </span>
               <button className="rounded-md border border-border px-2.5 py-1 font-mono text-[10px] text-text-secondary transition-all hover:bg-white/[0.06]">
                 SEND TEST

@@ -63,12 +63,12 @@ export default function CSRDDisclosure() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-base font-medium text-[#E2E8F0]">CSRD Disclosure</h1>
-          <p className="text-[11px] text-[#94A3B8]">European Sustainability Reporting Standards (ESRS)</p>
+          <p className="text-[11px] text-[#94A3B8]">DEMO ESRS layout — not a filed disclosure</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
             <p className="font-mono text-lg font-bold text-[#34D399]">94%</p>
-            <p className="text-[8px] font-mono text-[#64748B]">COMPLETE</p>
+            <p className="text-[8px] font-mono text-[#F59E0B]">DEMO COMPLETE</p>
           </div>
           <div className="text-right">
             <p className="font-mono text-[11px] text-[#F59E0B]">Dec 15, 2026</p>
@@ -138,13 +138,11 @@ export default function CSRDDisclosure() {
         <div className="space-y-3">
           <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] p-3">
             <h3 className="text-[9px] font-mono uppercase tracking-wider text-[#64748B] mb-2 flex items-center gap-1"><Shield size={10} />Assurance</h3>
-            <p className="text-[10px] text-[#E2E8F0]">Limited assurance engagement</p>
-            <p className="text-[9px] text-[#64748B] mt-1">Auditor: KPMG AG</p>
-            <p className="text-[9px] text-[#64748B]">Ref: ESG-2026-HB-001</p>
-            <p className="text-[9px] text-[#64748B] mt-1">Scope: ESRS E1, E5, S1, G1</p>
+            <p className="text-[10px] text-[#E2E8F0]">DEMO — no assurance engagement</p>
+            <p className="text-[9px] text-[#64748B] mt-1">Auditor name (KPMG AG) is fictional</p>
+            <p className="text-[9px] text-[#64748B]">No opinion, no fieldwork, no report</p>
             <div className="mt-2 pt-2 border-t border-white/[0.06]">
-              <p className="text-[8px] font-mono text-[#64748B]">Fieldwork: Oct 2026</p>
-              <p className="text-[8px] font-mono text-[#64748B]">Report: Nov 2026</p>
+              <p className="text-[8px] font-mono text-[#64748B]">No fieldwork · no assurance report</p>
             </div>
           </div>
 
