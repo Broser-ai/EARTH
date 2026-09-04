@@ -7,7 +7,11 @@
     "dev": "vite --port 5180 --host",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "preview": "vite preview --port 5180"
+    "preview": "vite preview --port 5180",
+    "api:dev": "npm --prefix apps/api run dev",
+    "api:build": "npm --prefix apps/api run build",
+    "api:test": "npm --prefix apps/api run test",
+    "api:typecheck": "npm --prefix apps/api run typecheck"
   },
   "dependencies": {
     "clsx": "^2.1.1",
