@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import clsx from 'clsx';
+import { GHG_SPINE, GHG_TOTAL } from '../demo/canonical';
 import {
   Target,
   Plus,
@@ -69,7 +70,7 @@ const TARGET_ROWS: TargetRow[] = [
     target: 'Near-term 2030',
     scope: 'Scope 3',
     baseYear: 12847,
-    current: 8497,
+    current: GHG_SPINE.scope3,
     goal: 9010,
     reductionNeeded: -29.9,
     progressPct: 53.8,
@@ -80,7 +81,7 @@ const TARGET_ROWS: TargetRow[] = [
     target: 'Long-term 2045',
     scope: 'All scopes',
     baseYear: 21267,
-    current: 14847,
+    current: GHG_TOTAL,
     goal: 2127,
     reductionNeeded: -90,
     progressPct: 30.2,

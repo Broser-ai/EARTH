@@ -132,15 +132,6 @@ export interface ComplianceFramework {
   missingItems: string[];
 }
 
-export interface EmissionsData {
-  scope1: number;
-  scope2: number;
-  scope3: number;
-  total: number;
-  period: string; // e.g. 'Q2 2026'
-  unit: 'tCO2e';
-}
-
 export type TakeBackType = 'trade-in' | 'deposit' | 'epr';
 
 export interface TakeBackProgram {
@@ -260,17 +251,6 @@ export const MOCK_COMPLIANCE_FRAMEWORKS: ComplianceFramework[] = [
   { name: 'EPR Packaging (VerpackG) (DEMO)', score: 88, deadline: '2026-10-01', missingItems: ['LUCID registration update'] },
   { name: 'ISO 14001 (DEMO — not certified)', score: 0, deadline: '2027-05-01', missingItems: ['No certificate in this SPA'] },
   { name: 'German Supply Chain Act (LkSG) (DEMO)', score: 71, deadline: '2026-11-15', missingItems: ['Tier-2 supplier risk mapping', 'Grievance mechanism audit'] },
-];
-
-export const MOCK_EMISSIONS_DATA: EmissionsData[] = [
-  {
-    scope1: 2140,
-    scope2: 4210,
-    scope3: 8497,
-    total: 14847,
-    period: 'H1 2026 (DEMO, ESTIMATED)',
-    unit: 'tCO2e',
-  },
 ];
 
 export const MOCK_TAKEBACK_PROGRAMS: TakeBackProgram[] = [
