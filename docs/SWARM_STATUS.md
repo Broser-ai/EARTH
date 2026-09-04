@@ -4,12 +4,12 @@
 **Last specialist merge:** `26cefb3dbd26ed962e3cc4c1931d82c058aeaef2`  
 **Status register:** this file; branch tip is the latest commit on `integration/earth-foundation-v0`  
 **Base (published):** `origin/main` @ `7490bdac3f5385d4b99597e31f9ab5ec54de82a8` (SPA only)  
-**PRIME:** inspect + merge into integration only; no product implementation on this branch  
-**Updated:** 2026-09-04T07:52:29Z
+**PRIME:** inspect + merge into integration; Michael ordered Material Opportunity Intake implemented on this live trunk (2026-09-04)  
+**Updated:** 2026-09-04T08:20:00Z
 
-Foundation integration is **green**. All three specialist branches were inspected, merged with `--no-ff` into `integration/earth-foundation-v0`, and the post-merge gate passed. Do **not** merge this branch to `main`. Do not start intake workflow, auth, NanoChat, Meta Harness, RL, external APIs, blockchain, or DPP until Michael accepts.
+Foundation integration is **green**. All three specialist branches were inspected, merged with `--no-ff` into `integration/earth-foundation-v0`, and the post-merge gate passed. Do **not** merge this branch to `main`.
 
-PR #5 (`cursor/material-opportunity-intake-a2a5`) was **not** merged in this wave.
+Michael ordered **IMPLEMENT NOW** of MATERIAL_OPPORTUNITY_INTAKE v0.1 on this branch (port PR #5 onto current integration, keep DEMO/truth labels + quality scripts + health/info, add Postgres/PRIME/routes/tests, wire the SPA). NanoChat remains NOT_CONFIGURED. No Meta Harness, RL, external APIs, blockchain, or DPP.
 
 ---
 
@@ -105,7 +105,8 @@ Recorded on `/tmp/earth-integration-foundation` after each merge. Root `npm inst
 
 ## Out of this wave (still frozen)
 
-- MATERIAL_OPPORTUNITY_INTAKE v0.1 runtime (PR #5 not merged)
-- Postgres persistence, auth/OIDC
-- NanoChat, Meta Harness, RL
+- OIDC / production authentication (DEVELOPMENT headers only)
+- NanoChat adapter (NOT_CONFIGURED)
+- Meta Harness, RL
 - External APIs, blockchain, DPP
+- Merge to `main`

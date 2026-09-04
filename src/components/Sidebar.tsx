@@ -23,6 +23,7 @@ const sections: SidebarSection[] = [
   {
     label: 'Operations',
     items: [
+      { id: 'material-opportunity-intake', label: 'Material intake' },
       { id: 'pickup-orders', label: 'Pickup orders', count: '248' },
       { id: 'container-fleet', label: 'Container fleet', count: '1,204' },
       { id: 'recycler-network', label: 'Recycler network', count: '14' },

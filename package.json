@@ -18,7 +18,8 @@
     "api:dev": "npm --prefix apps/api run dev",
     "api:build": "npm --prefix apps/api run build",
     "api:test": "npm --prefix apps/api run test",
-    "api:typecheck": "npm --prefix apps/api run typecheck"
+    "api:typecheck": "npm --prefix apps/api run typecheck",
+    "db:migrate": "npm --prefix apps/api run migrate"
   },
   "dependencies": {
     "clsx": "^2.1.1",

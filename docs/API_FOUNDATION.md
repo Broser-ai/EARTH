@@ -1,44 +1,43 @@
 # API foundation (DEVELOPMENT ONLY)
 
-**Status:** local Fastify scaffold. Not a production service.  
-**Owner:** Michael. Nothing here is a license to persist data, authenticate users, or call an external network.
+**Status:** local Fastify service. Not a production API.  
+**Owner:** Michael. Identity headers are not authentication. Deterministic stubs are not live integrations.
 
-This is the first `apps/api` wave. It exists so the TypeScript + Fastify + Vitest toolchain can go green **before** PostgreSQL, identity, PRIME, or any workflow.
+The first `apps/api` wave added `GET /health` and `GET /v1/info`. This tree now also mounts **Material Opportunity Intake v0.1** (Postgres + PRIME policy). Foundation routes stay public and still do not query the datastore.
 
 ## What is implemented
 
 - A standalone Node package at `apps/api` (`earth-api` v0.1.0).
 - Fastify bound to `0.0.0.0:$PORT` (default `3001`).
-- `GET /health` — process liveness. No datastore check.
-- `GET /v1/info` — service identity and explicit `false` integration flags.
+- `GET /health` — process liveness. No datastore check. No identity headers.
+- `GET /v1/info` — service identity and honest integration flags (intake present; LLM/recycler/auth absent).
+- PostgreSQL schema, Compose `postgres:16-alpine`, migrations, DEVELOPMENT seed org/user.
+- PRIME policy v0.1 + `MATERIAL_OPPORTUNITY_INTAKE` routes. See [FIRST_PROCESS_MATERIAL_OPPORTUNITY.md](FIRST_PROCESS_MATERIAL_OPPORTUNITY.md).
 - Every JSON body includes `"mode": "DEVELOPMENT_ONLY"`.
 - Every response sets `X-Earth-Mode: DEVELOPMENT_ONLY`.
-- Vitest inject tests that do **not** require Docker, Postgres, or network I/O.
+- Vitest: foundation inject tests (no database) plus intake tests against Postgres.
 
-## What is intentionally absent
+## Honest flags
 
-This wave does **not** start:
+`GET /v1/info` reports:
 
-| Area | State |
-|------|--------|
-| PostgreSQL / migrations | not present |
-| docker-compose database | not present |
-| authentication / identity headers | not present |
-| PRIME runtime | not present |
-| Material Opportunity Intake | not present |
-| NanoChat | not present |
-| Meta Harness | not present |
-| RL | not present |
-| external APIs | not present |
-| blockchain | not present |
-| Digital Product Passport | not present |
-
-`GET /v1/info` repeats those flags as `false` so a client cannot mistake the scaffold for a live control plane.
+| Flag | Value | Meaning |
+|------|--------|---------|
+| `postgres` | true | local schema + Compose |
+| `materialOpportunityIntake` | true | first durable workflow |
+| `primeRuntime` | true | PRIME v0.1 for this workflow only |
+| `authentication` | false | DEVELOPMENT headers, not OIDC |
+| `nanoChat` | false | NOT_CONFIGURED |
+| `recyclerNetwork` | false | no recycler adapter |
+| `reinforcementLearning` | false | not present |
+| `externalApis` / `blockchain` / `digitalProductPassport` / `metaHarness` | false | not present |
 
 ## Run
 
 ```bash
+docker compose up -d
 npm --prefix apps/api install
+npm run db:migrate
 npm run api:dev      # Fastify on 0.0.0.0:3001 (or $PORT)
 ```
 
@@ -49,10 +48,11 @@ curl -s http://localhost:3001/v1/info
 
 ## Test and typecheck
 
-No database is required.
+Foundation inject tests do not require Docker. Intake tests require Postgres at `DATABASE_URL`.
 
 ```bash
 npm --prefix apps/api install
+npm run db:migrate
 npm run api:test
 npm run api:typecheck
 npm run api:build
@@ -65,8 +65,9 @@ Root `npm run typecheck` still typechecks the Vite SPA only. Use `api:typecheck`
 | Variable | Required | Default |
 |----------|----------|---------|
 | `PORT` | no | `3001` |
+| `DATABASE_URL` | yes to start the process | `postgres://earth:earth@localhost:5432/earth` |
 
-There is no `DATABASE_URL` and no secret in this package. Do not add `VITE_*` credentials here.
+Do not add `VITE_*` credentials here. Adapter secrets, if a later process adds them, stay server-side.
 
 ## Example envelopes
 
@@ -81,24 +82,4 @@ There is no `DATABASE_URL` and no secret in this package. Do not add `VITE_*` cr
 }
 ```
 
-`GET /v1/info` (truncated)
-
-```json
-{
-  "mode": "DEVELOPMENT_ONLY",
-  "service": "earth-api",
-  "version": "0.1.0",
-  "integrations": {
-    "postgres": false,
-    "authentication": false,
-    "primeRuntime": false
-  },
-  "note": "DEVELOPMENT ONLY foundation scaffold. No live integrations."
-}
-```
-
-Unknown paths return `404` with the same `mode` label. Workflow routes such as `/v1/material-opportunities/start` are **not** registered.
-
-## Later waves
-
-Postgres, compose, identity, PRIME, and intake belong in later accepted branches. Do not treat this package as a stub of those systems.
+Unknown paths return `404` with the same `mode` label. Intake start without DEVELOPMENT headers returns `401 DEVELOPMENT_IDENTITY_REQUIRED`.

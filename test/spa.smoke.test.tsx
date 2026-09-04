@@ -12,6 +12,7 @@ describe('EARTH SPA smoke', () => {
     expect(screen.getByText('Hornbach Germany')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'OVERVIEW' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Dashboard' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Material intake' })).toBeInTheDocument();
   });
 
   it('renders CommandBar navigation labels', () => {

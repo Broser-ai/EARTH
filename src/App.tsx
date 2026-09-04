@@ -4,6 +4,7 @@ import type { EarthSection } from './components/CommandBar';
 import Sidebar from './components/Sidebar';
 
 import Overview from './pages/Overview';
+import MaterialOpportunityIntake from './pages/MaterialOpportunityIntake';
 import PickupOrders from './pages/PickupOrders';
 import ContainerFleet from './pages/ContainerFleet';
 import RecyclerNetwork from './pages/RecyclerNetwork';
@@ -31,7 +32,7 @@ import BillingSettings from './pages/BillingSettings';
 
 const SECTION_DEFAULT_PAGE: Record<EarthSection, string> = {
   overview: 'dashboard',
-  operations: 'pickup-orders',
+  operations: 'material-opportunity-intake',
   circular: 'reverse-logistics',
   'carbon-esg': 'carbon-accounting',
   compliance: 'compliance-dashboard',
@@ -40,6 +41,7 @@ const SECTION_DEFAULT_PAGE: Record<EarthSection, string> = {
 
 const PAGE_TO_SECTION: Record<string, EarthSection> = {
   'dashboard': 'overview',
+  'material-opportunity-intake': 'operations',
   'pickup-orders': 'operations',
   'container-fleet': 'operations',
   'recycler-network': 'operations',
@@ -68,6 +70,7 @@ const PAGE_TO_SECTION: Record<string, EarthSection> = {
 
 const PAGE_COMPONENTS: Record<string, () => React.JSX.Element> = {
   'dashboard': Overview,
+  'material-opportunity-intake': MaterialOpportunityIntake,
   'pickup-orders': PickupOrders,
   'container-fleet': ContainerFleet,
   'recycler-network': RecyclerNetwork,

@@ -1,10 +1,48 @@
 import Fastify, { type FastifyError, type FastifyInstance } from 'fastify';
+import type { Pool } from 'pg';
 import { DEVELOPMENT_MODE, developmentEnvelope, developmentError } from './http.js';
-import { describeIntegration, INTEGRATION_FLAGS, SERVICE_NAME, SERVICE_VERSION } from './info.js';
+import { registerDevelopmentIdentity } from './identity.js';
+import {
+  describeIntegration,
+  INTEGRATION_FLAGS,
+  PRODUCT_ROUTES,
+  SERVICE_NAME,
+  SERVICE_VERSION,
+} from './info.js';
+import { registerPrimeRoutes } from './prime/routes.js';
 
-export async function buildApp(): Promise<FastifyInstance> {
+export async function buildApp(pool?: Pool): Promise<FastifyInstance> {
   const app = Fastify({
     logger: process.env.NODE_ENV !== 'test',
+  });
+
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (request, body, done) => {
+    void request;
+    const text = typeof body === 'string' ? body : body.toString('utf8');
+    if (!text) {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(text) as unknown);
+    } catch {
+      const parseError = new Error('invalid JSON body') as Error & { statusCode: number };
+      parseError.statusCode = 400;
+      done(parseError, undefined);
+    }
+  });
+
+  app.addHook('onRequest', async (request, reply) => {
+    const origin = typeof request.headers.origin === 'string' ? request.headers.origin : '*';
+    reply.header('Access-Control-Allow-Origin', origin);
+    reply.header(
+      'Access-Control-Allow-Headers',
+      'Content-Type, x-earth-org-id, x-earth-user-id, x-earth-user-role',
+    );
+    reply.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    if (request.method === 'OPTIONS') {
+      return reply.status(204).send();
+    }
   });
 
   app.addHook('onSend', async (_request, reply, payload) => {
@@ -19,6 +57,11 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   registerFoundationRoutes(app);
+
+  if (pool) {
+    registerDevelopmentIdentity(app, pool);
+    registerPrimeRoutes(app, pool);
+  }
 
   app.setNotFoundHandler((request, reply) => {
     reply.status(404).send(
@@ -52,11 +95,8 @@ function registerFoundationRoutes(app: FastifyInstance): void {
           describeIntegration(name),
         ]),
       ),
-      routes: [
-        { method: 'GET', path: '/health', purpose: 'process liveness (no datastore)' },
-        { method: 'GET', path: '/v1/info', purpose: 'service identity and integration flags' },
-      ],
-      note: 'DEVELOPMENT ONLY foundation scaffold. No live integrations.',
+      routes: PRODUCT_ROUTES.map((route) => ({ ...route })),
+      note: 'DEVELOPMENT ONLY. Material Opportunity Intake v0.1 is local Postgres + deterministic stubs. No live LLM, recycler, ERP, SKAT, or SAP.',
     }),
   );
 }

@@ -28,6 +28,8 @@ The EARTH command-grid SPA (`src/`, Vite port 5180) is a **DEVELOPMENT / DEMO** 
 
 No recycler, ERP, Slack, Teams, SKAT, SAP, email, blockchain, authority, or AI-provider adapter is connected from this frontend.
 
+The **Material intake** page (`src/pages/MaterialOpportunityIntake.tsx`) is the exception for *local* wiring: it POSTs to the Vite-proxied Fastify API with DEVELOPMENT identity headers. That is still not production auth, not a recycler network, and not an LLM.
+
 ## GHG spine
 
 If a screen shows inventory tCO₂e after this change, it should use `src/demo/canonical.ts`:
@@ -49,7 +51,7 @@ This pass is **UI-only labeling plus canonical constants**. There is no test run
 1. Visible badges in the command bar and on the screens that previously claimed live status.
 2. Runtime asserts in `src/demo/canonical.ts` (`GHG_TOTAL` and category sum must equal 14,847). `tsc --noEmit` typechecks the module.
 
-Add Vitest (or equivalent) when behavior beyond labels is introduced.
+Add Vitest (or equivalent) when behavior beyond labels is introduced. SPA smoke tests now also assert the Material intake nav entry exists.
 
 ## Reversal
 
