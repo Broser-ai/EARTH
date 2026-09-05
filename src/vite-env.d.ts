@@ -1,12 +1,9 @@
 /// <reference types="vite/client" />
 
+// Adapter credentials must never be VITE_* — Vite inlines those into the SPA bundle.
+// Presence is probed server-side (apps/api) or via non-prefixed process.env in Node.
 interface ImportMetaEnv {
-  readonly VITE_ROBOFLOW_API_KEY?: string;
-  readonly VITE_TINKER_API_KEY?: string;
-  readonly VITE_INKLING_WEIGHTS_URI?: string;
-  readonly ROBOFLOW_API_KEY?: string;
-  readonly TINKER_API_KEY?: string;
-  readonly INKLING_WEIGHTS_URI?: string;
+  readonly MODE: string;
 }
 
 interface ImportMeta {

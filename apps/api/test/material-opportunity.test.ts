@@ -206,6 +206,14 @@ describe('MATERIAL_OPPORTUNITY_INTAKE v0.1', () => {
     expect(audit.json().events.every((event: { policyVersion: string }) => event.policyVersion === 'prime-v0.1')).toBe(
       true,
     );
+
+    const persisted = await pool.query<{ event_type: string; organization_id: string }>(
+      `SELECT event_type, organization_id FROM audit_events WHERE session_id = $1 ORDER BY created_at ASC`,
+      [sessionId],
+    );
+    expect(persisted.rows.length).toBeGreaterThan(0);
+    expect(persisted.rows.every((row) => row.organization_id === DEV_ORG)).toBe(true);
+    expect(persisted.rows.map((row) => row.event_type)).toEqual(expect.arrayContaining(['SESSION_CREATED', 'TASK_CLAIMED', 'TASK_STATE_CHANGED']));
   });
 
   it('rejects invalid state transitions', () => {

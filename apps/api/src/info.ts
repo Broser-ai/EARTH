@@ -28,7 +28,7 @@ export const PRODUCT_ROUTES = [
   {
     method: 'POST',
     path: '/v1/material-opportunities/start',
-    purpose: 'start MATERIAL_OPPORTUNITY_INTAKE v0.1 (DEVELOPMENT headers)',
+    purpose: 'start MATERIAL_OPPORTUNITY_INTAKE v0.1 (DEVELOPMENT headers or OIDC)',
   },
   { method: 'GET', path: '/v1/sessions/:sessionId', purpose: 'read a session envelope for this org' },
   {
@@ -41,6 +41,29 @@ export const PRODUCT_ROUTES = [
     path: '/v1/sessions/:sessionId/run-next',
     purpose: 'claim one QUEUED task and run a deterministic stub',
   },
+  {
+    method: 'POST',
+    path: '/v1/evidence-documents',
+    purpose: 'create metadata-only evidence document (INPUT_UNVERIFIED)',
+  },
+  {
+    method: 'POST',
+    path: '/v1/evidence-records',
+    purpose: 'create structured evidence record (INPUT_UNVERIFIED)',
+  },
+  { method: 'POST', path: '/v1/claims', purpose: 'create a DRAFT claim' },
+  { method: 'GET', path: '/v1/claims/:claimId', purpose: 'read a claim for this org' },
+  {
+    method: 'POST',
+    path: '/v1/claims/:claimId/evidence',
+    purpose: 'link evidence to a claim in this org',
+  },
+  { method: 'POST', path: '/v1/approval-requests', purpose: 'create a durable human approval request' },
+  {
+    method: 'POST',
+    path: '/v1/approval-requests/:requestId/decision',
+    purpose: 'record a human approval or rejection',
+  },
 ] as const;
 
 export function describeIntegration(name: IntegrationName): string {
@@ -50,7 +73,7 @@ export function describeIntegration(name: IntegrationName): string {
     case 'materialOpportunityIntake':
       return 'MATERIAL_OPPORTUNITY_INTAKE v0.1 persists sessions, tasks, and audit events';
     case 'authentication':
-      return 'no OIDC or production auth — DEVELOPMENT identity headers behind TenantContext / AuthProvider.getActor only';
+      return 'OIDC JWT provider is implemented but not a live IdP. Local default is DEVELOPMENT headers behind TenantContext; roles come from organization_memberships, never from headers or JWT claims';
     case 'primeRuntime':
       return 'PRIME policy v0.1 for MATERIAL_OPPORTUNITY_INTAKE only; no general agent runtime';
     case 'nanoChat':

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 import { AUTH_MODE_DEVELOPMENT } from '../src/auth/types.js';
@@ -35,18 +35,34 @@ describe('TenantContext and DEVELOPMENT AuthProvider', () => {
     await resetWorkflowTables(pool);
   });
 
-  it('loads role from Postgres users.role, not from x-earth-user-role', async () => {
+  it('loads role from organization_memberships.role, not from x-earth-user-role', async () => {
     const stored = await pool.query<{ role: string }>(
-      `SELECT role FROM users WHERE id = $1 AND organization_id = $2`,
+      `SELECT role FROM organization_memberships WHERE user_id = $1 AND organization_id = $2 AND status = 'ACTIVE'`,
       [DEV_VIEWER, DEV_ORG],
     );
     expect(stored.rows[0]?.role).toBe('VIEWER');
 
     const ownerStored = await pool.query<{ role: string }>(
-      `SELECT role FROM users WHERE id = $1 AND organization_id = $2`,
+      `SELECT role FROM organization_memberships WHERE user_id = $1 AND organization_id = $2 AND status = 'ACTIVE'`,
       [DEV_USER, DEV_ORG],
     );
     expect(ownerStored.rows[0]?.role).toBe('OWNER');
+  });
+
+  it('does not escalate when users.role is OWNER but membership role stays VIEWER', async () => {
+    await pool.query(`UPDATE users SET role = 'OWNER' WHERE id = $1`, [DEV_VIEWER]);
+    try {
+      const start = await app.inject({
+        method: 'POST',
+        url: '/v1/material-opportunities/start',
+        headers: viewerHeaders,
+        payload: { ...demoBody, idempotencyKey: 'users-role-drift' },
+      });
+      expect(start.statusCode).toBe(403);
+      expect(start.json().error.code).toBe('FORBIDDEN');
+    } finally {
+      await pool.query(`UPDATE users SET role = 'VIEWER' WHERE id = $1`, [DEV_VIEWER]);
+    }
   });
 
   it('cannot escalate by changing x-earth-user-role to OWNER', async () => {
@@ -131,6 +147,14 @@ describe('TenantContext and DEVELOPMENT AuthProvider', () => {
     });
     expect(run.statusCode).toBe(403);
     expect(run.json().error.code).toBe('FORBIDDEN');
+
+    const audit = await app.inject({
+      method: 'GET',
+      url: `/v1/sessions/${sessionId}/audit-events`,
+      headers: viewerHeaders,
+    });
+    expect(audit.statusCode).toBe(403);
+    expect(audit.json().error.code).toBe('FORBIDDEN');
   });
 
   it('does not let body organizationId override TenantContext', async () => {
