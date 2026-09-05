@@ -1,6 +1,5 @@
 import type { FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
-import { USER_ROLES, type UserRole } from '../contracts.js';
 import { AuthError } from './errors.js';
 import {
   AUTH_MODE_DEVELOPMENT,

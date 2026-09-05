@@ -25,6 +25,19 @@ describe('evidence and durable human approvals', () => {
     expect(document.statusCode).toBe(201);
     const record = await app.inject({ method: 'POST', url: '/v1/evidence-records', headers: devHeaders, payload: { documentId: document.json().document.id, fieldName: 'recycled_content_pct', value: 32, unit: 'percent', extractionMethod: 'MANUAL', extractionVersion: 'manual-v0.1', confidence: 0.8 } });
     expect(record.json().record.verificationStatus).toBe('INPUT_UNVERIFIED');
+    const storedRecord = await pool.query<{ verification_status: string; organization_id: string }>(
+      'SELECT verification_status, organization_id FROM evidence_records WHERE id = $1',
+      [record.json().record.id],
+    );
+    expect(storedRecord.rows[0]?.verification_status).toBe('INPUT_UNVERIFIED');
+    expect(storedRecord.rows[0]?.organization_id).toBe(DEV_ORG);
+    const evidenceAudit = await pool.query<{ event_type: string }>(
+      `SELECT event_type FROM audit_events WHERE organization_id = $1 AND event_type IN ('EVIDENCE_DOCUMENT_CREATED', 'EVIDENCE_RECORD_CREATED')`,
+      [DEV_ORG],
+    );
+    expect(evidenceAudit.rows.map((row) => row.event_type)).toEqual(
+      expect.arrayContaining(['EVIDENCE_DOCUMENT_CREATED', 'EVIDENCE_RECORD_CREATED']),
+    );
     const claim = await app.inject({ method: 'POST', url: '/v1/claims', headers: devHeaders, payload: { claimType: 'RECYCLED_CONTENT', statement: 'Batch has at least 30 percent recycled content.', value: { recycledContentPct: 32 }, unit: 'percent', confidence: 0.8 } });
     expect(claim.json().claim.status).toBe('DRAFT');
     const claimId = claim.json().claim.id;

@@ -23,7 +23,8 @@ function isPublicRoute(request: FastifyRequest): boolean {
 
 /**
  * Resolves TenantContext via AuthProvider.getActor.
- * DEVELOPMENT headers stay until an OIDC provider exists. This is not authentication.
+ * Local default is DEVELOPMENT headers (not authentication). OIDC JWT is the
+ * configured production provider; roles still come from memberships, never tokens.
  */
 export function registerAuthProvider(app: FastifyInstance, provider: AuthProvider): void {
   app.earthAuthProvider = provider;

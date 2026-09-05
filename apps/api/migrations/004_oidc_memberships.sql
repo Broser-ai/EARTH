@@ -1,4 +1,8 @@
 -- OIDC-ready identities and memberships. DEVELOPMENT seed users remain local-only.
+-- Additive: safe on a fresh canonical DB and on an origin/main memberships table
+-- that used a composite primary key without an `id` column.
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS oidc_subject text;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS normalized_email text;
@@ -16,12 +20,18 @@ CREATE TABLE IF NOT EXISTS organization_memberships (
   UNIQUE (organization_id, user_id)
 );
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- origin/main lineage created this table without `id`.
+ALTER TABLE organization_memberships ADD COLUMN IF NOT EXISTS id uuid;
+ALTER TABLE organization_memberships ADD COLUMN IF NOT EXISTS status text;
+ALTER TABLE organization_memberships ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+UPDATE organization_memberships SET status = 'ACTIVE' WHERE status IS NULL;
+UPDATE organization_memberships SET updated_at = now() WHERE updated_at IS NULL;
+UPDATE organization_memberships SET id = gen_random_uuid() WHERE id IS NULL;
 
 INSERT INTO organization_memberships (id, organization_id, user_id, role, status)
 SELECT gen_random_uuid(), organization_id, id, role, 'ACTIVE'
 FROM users
-ON CONFLICT (organization_id, user_id) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 ALTER TABLE audit_events ADD COLUMN IF NOT EXISTS auth_mode text;
 ALTER TABLE audit_events ADD COLUMN IF NOT EXISTS correlation_id text;
