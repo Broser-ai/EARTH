@@ -157,6 +157,8 @@ export class IntegrationStore {
     },
   ): Promise<IntegrationOperation> {
     const id = randomUUID();
+    const expiresAt =
+      typeof request.timeoutMs === 'number' ? new Date(Date.now() + request.timeoutMs) : null;
     const result = await client.query<OperationRow>(
       `INSERT INTO integration_operations (
          id, organization_id, provider_key, operation_type, state, idempotency_key,
@@ -167,7 +169,7 @@ export class IntegrationStore {
          $1, $2, $3, $4, $5, $6,
          $7, $8, $9, NULL,
          $10, NULL, $11, NULL, NULL,
-         NULL, $12, $13, now(), now()
+         $12, $13, $14, now(), now()
        )
        RETURNING *`,
       [
@@ -182,6 +184,7 @@ export class IntegrationStore {
         args.requestDigest,
         args.safeSummary,
         context.actorId,
+        expiresAt,
         args.errorCode,
         context.correlationId,
       ],
@@ -202,6 +205,33 @@ export class IntegrationStore {
     );
     const row = result.rows[0];
     return row ? mapOperation(row) : null;
+  }
+
+  async expireOverdueNotConfigured(
+    client: PoolClient,
+    context: TenantContext,
+    operation: IntegrationOperation,
+  ): Promise<IntegrationOperation> {
+    if (operation.state !== 'NOT_CONFIGURED' || !operation.expiresAt) {
+      return operation;
+    }
+    const result = await client.query<OperationRow>(
+      `UPDATE integration_operations
+       SET state = 'EXPIRED',
+           completed_at = COALESCE(completed_at, now()),
+           updated_at = now(),
+           error_code = 'INTEGRATION_OPERATION_EXPIRED',
+           safe_summary = 'Operation expired without execution. No external provider call was made.'
+       WHERE id = $1
+         AND organization_id = $2
+         AND state = 'NOT_CONFIGURED'
+         AND expires_at IS NOT NULL
+         AND expires_at < now()
+       RETURNING *`,
+      [operation.id, context.organizationId],
+    );
+    const row = result.rows[0];
+    return row ? mapOperation(row) : operation;
   }
 
   async cancelOperation(

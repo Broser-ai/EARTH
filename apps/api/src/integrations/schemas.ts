@@ -13,6 +13,7 @@ export const createOperationBodySchema = z.object({
   dataClassification: z.enum(INTEGRATION_DATA_CLASSIFICATIONS),
   idempotencyKey: z.string().trim().min(1).max(200),
   payloadReference: z.record(z.unknown()).optional(),
+  timeoutMs: z.number().int().min(1).max(3_600_000).optional(),
 });
 
 export const operationIdParamSchema = z.string().uuid();

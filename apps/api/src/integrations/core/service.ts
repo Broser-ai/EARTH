@@ -165,7 +165,7 @@ export class IntegrationControlService {
         request.idempotencyKey,
       );
       if (existing) {
-        return existing;
+        return this.hydrateOperation(client, context, existing);
       }
 
       const provider = await this.store.getProvider(client, request.providerKey);
@@ -219,7 +219,7 @@ export class IntegrationControlService {
           'integration operation not found for this organization',
         );
       }
-      return operation;
+      return this.hydrateOperation(client, context, operation);
     });
   }
 
@@ -244,8 +244,9 @@ export class IntegrationControlService {
         );
       }
 
-      if (existing.state === 'CANCELLED') {
-        return existing;
+      const current = await this.hydrateOperation(client, context, existing);
+      if (current.state === 'CANCELLED' || current.state === 'EXPIRED') {
+        return current;
       }
 
       const cancelled = await this.store.cancelOperation(client, context, operationId);
@@ -273,6 +274,27 @@ export class IntegrationControlService {
 
   executeOperation(): Promise<never> {
     return this.adapter('ROBOFLOW').executeOperation();
+  }
+
+  private async hydrateOperation(
+    client: PoolClient,
+    context: TenantContext,
+    operation: IntegrationOperation,
+  ): Promise<IntegrationOperation> {
+    const hydrated = await this.store.expireOverdueNotConfigured(client, context, operation);
+    if (hydrated.state === 'EXPIRED' && operation.state !== 'EXPIRED') {
+      await this.writeAudit(client, context, {
+        eventType: 'INTEGRATION_EXPIRED',
+        providerKey: hydrated.providerKey,
+        operationType: hydrated.operationType,
+        operationId: hydrated.id,
+        previousState: operation.state,
+        nextState: 'EXPIRED',
+        requestDigest: hydrated.requestDigestSha256,
+        reasonCode: 'INTEGRATION_OPERATION_EXPIRED',
+      });
+    }
+    return hydrated;
   }
 
   private async toStatusView(
