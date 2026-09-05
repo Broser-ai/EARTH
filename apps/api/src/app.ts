@@ -61,7 +61,7 @@ export async function buildApp(pool?: Pool, authConfig?: AuthConfig): Promise<Fa
     }
     reply.header(
       'Access-Control-Allow-Headers',
-      'Content-Type, x-earth-org-id, x-earth-user-id, x-earth-user-role',
+      'Content-Type, Authorization, x-earth-org-id, x-earth-user-id, x-earth-user-role',
     );
     reply.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     reply.header('X-Correlation-Id', request.id);
