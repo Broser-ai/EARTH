@@ -5,7 +5,7 @@
 **Commander commit:** branch tip of `cursor/swarm-execution-status-54d8` (this file)  
 **Commander PR:** https://github.com/Broser-ai/EARTH/pull/12 (draft; coordination only; do not merge to `main`)  
 **Published origin tip used as fallback base:** `8317e0620c926c541c23d1a4fb8d8dfc3e25098b` (`origin/main`, OIDC + TenantContext + Intake)  
-**Updated:** 2026-09-05T10:36:00Z
+**Updated:** 2026-09-05T10:49:00Z
 
 This file is the coordination register. It does not claim live integrations, LLM/NanoChat/RAG, trained RL, blockchain/ZK, production auth, or CSRD/PPWR/DPP compliance.
 
@@ -68,8 +68,8 @@ A parent session described Evidence Domain + Durable Human Approval v0.1 as alre
 | Base SHA | `8317e0620c926c541c23d1a4fb8d8dfc3e25098b` (fallback; requested `bfe6feb` absent) |
 | Owner | Cursor Frontend Evidence Engineer |
 | Allowed paths | `src/features/evidence/**`; `src/features/approvals/**`; `src/lib/api/**`; `src/test/evidence/**`; `docs/FRONTEND_EVIDENCE_CONSOLE_V0_1.md`; smallest route registration (`src/routing/catalog.ts` and `src/routing/pageMap.ts` if required) |
-| Status | **STARTED** — isolated implementation session `bc-022a2ac3-8a04-5c78-8d12-bd085c4155d9` |
-| Current commit | `8317e0620c926c541c23d1a4fb8d8dfc3e25098b` (branch tip at launch; worker must not push) |
+| Status | **IN PROGRESS** — isolated implementation session `bc-022a2ac3-8a04-5c78-8d12-bd085c4155d9` still RUNNING; docs commit not yet on the branch |
+| Current commit | `8cf32ad` (3 of 4 requested commits; worker must not push) |
 | Tests | Worker must run `npm run typecheck`, `lint`, `format:check`, `test`, `build`, `npm audit` |
 | Blockers | Evidence/Approval HTTP API not in this base. Worker must not add backend, PRIME, auth, or dependencies. |
 | Merge dependency | Last: after API contract tests and PRIME v0.2. No merge in this wave. |
@@ -83,10 +83,10 @@ A parent session described Evidence Domain + Durable Human Approval v0.1 as alre
 | Base SHA | `8317e0620c926c541c23d1a4fb8d8dfc3e25098b` (fallback; requested `bfe6feb` absent) |
 | Owner | Cursor API Contract Test Engineer |
 | Allowed paths | `apps/api/test/contracts/**`; `apps/api/test/helpers/**` (new helper modules only; do not edit `apps/api/test/helpers.ts`); `docs/API_CONTRACT_TESTS_V0_1.md`; `scripts/api-contract-*` |
-| Status | **STARTED** — isolated implementation session `bc-c31828d6-dbff-5048-954b-7095c68852ff` |
-| Current commit | `8317e0620c926c541c23d1a4fb8d8dfc3e25098b` (branch tip at launch; worker must not push) |
-| Tests | Worker must run Docker Postgres migrate + `npm run api:test`, `api:typecheck`, `lint`, `format:check`, `npm audit` |
-| Blockers | Evidence/Claims/Approval routes not in this base. Auth/tenancy/intake contracts exist and must be locked. Worker must not add production API or weaken assertions. |
+| Status | **COMPLETE locally (not pushed)** — session `bc-c31828d6-dbff-5048-954b-7095c68852ff` |
+| Current commit | `7376bee4779e648b7083988b108bebd5524de9e2` |
+| Tests | `api:typecheck`, root `lint`, `format:check`, `npm audit` pass. `api:test` against Postgres **not green**: Docker not installed here (`BLOCKED_BY_DOCKER`). 21 Vitest tests passed without DB; 53 skipped after `createPool` throw. Assertions not weakened. |
+| Blockers | Evidence/Claims/Approval routes 7–9 and 11–25 **BLOCKED** until unpublished `feat/evidence-approvals-v0.1` @ `bfe6feb` is published. Invariants 1–6, 10, 26–31 implemented. Docker/Postgres required to run the DB contract suite. |
 | Merge dependency | First in the planned integration order. No merge in this wave. |
 
 ---
