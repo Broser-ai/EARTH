@@ -47,6 +47,31 @@ export const PRODUCT_ROUTES = [
     path: '/v1/sessions/:sessionId/run-next',
     purpose: 'claim one QUEUED task and run a deterministic stub',
   },
+  {
+    method: 'GET',
+    path: '/v1/integrations',
+    purpose: 'list server-side integration providers (default NOT_CONFIGURED, never CONNECTED)',
+  },
+  {
+    method: 'GET',
+    path: '/v1/integrations/:providerKey/status',
+    purpose: 'provider status for this tenant (credential presence is not CONNECTED)',
+  },
+  {
+    method: 'POST',
+    path: '/v1/integrations/:providerKey/operations',
+    purpose: 'create a gated integration operation (no outbound call by default)',
+  },
+  {
+    method: 'GET',
+    path: '/v1/integration-operations/:operationId',
+    purpose: 'read an integration operation for this organization',
+  },
+  {
+    method: 'POST',
+    path: '/v1/integration-operations/:operationId/cancel',
+    purpose: 'cancel an integration operation before provider execution',
+  },
 ] as const;
 
 export function describeIntegration(name: IntegrationName): string {

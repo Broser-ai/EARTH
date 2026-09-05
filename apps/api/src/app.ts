@@ -7,6 +7,7 @@ import { registerAuthProvider } from './auth/register.js';
 import { AUTH_MODE_DEVELOPMENT, type AuthMode, type AuthProvider } from './auth/types.js';
 import { loadConfig, type EarthConfig } from './config.js';
 import { DEVELOPMENT_MODE, clientSafeErrorMessage, modeEnvelope, modeError } from './http.js';
+import { assertNoViteIntegrationSecrets } from './integrations/config.js';
 import {
   describeIntegration,
   INTEGRATION_FLAGS,
@@ -14,6 +15,7 @@ import {
   SERVICE_NAME,
   SERVICE_VERSION,
 } from './info.js';
+import { registerIntegrationRoutes } from './integrations/core/routes.js';
 import { registerPrimeRoutes } from './prime/routes.js';
 
 declare module 'fastify' {
@@ -36,6 +38,7 @@ export interface BuildAppOptions {
 
 export async function buildApp(pool?: Pool, options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const config = options.config ?? loadConfig();
+  assertNoViteIntegrationSecrets();
   const app = Fastify({
     logger: loggerOption(config),
   });
@@ -109,6 +112,7 @@ export async function buildApp(pool?: Pool, options: BuildAppOptions = {}): Prom
     registerAuthProvider(app, resolved.provider);
     app.earthOidcConfigured = resolved.oidcConfigured;
     registerPrimeRoutes(app, pool);
+    await registerIntegrationRoutes(app, pool);
   }
 
   app.setNotFoundHandler((request, reply) => {
@@ -199,6 +203,8 @@ function loggerOption(config: EarthConfig): boolean | { level: string; redact: s
       'req.body.access_token',
       'req.body.id_token',
       'req.body.token',
+      'req.body.apiKey',
+      'req.body.api_key',
     ],
   };
 }
