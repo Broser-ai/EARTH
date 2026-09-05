@@ -103,6 +103,14 @@ bytes.
 the same triple returns the original operation row. No second execution can
 occur because execution does not exist.
 
+## Timeout and retry
+
+Optional `timeoutMs` (1–3,600,000) sets `expires_at` on the intent row. A later
+GET or idempotent POST of a **`NOT_CONFIGURED`** row whose window has passed
+marks it **`EXPIRED`** (`INTEGRATION_OPERATION_EXPIRED`) without calling a
+provider. **`BLOCKED`** policy failures stay `BLOCKED`. Retries cannot succeed:
+`executeOperation()` still throws `INTEGRATION_OPERATION_NOT_IMPLEMENTED`.
+
 ## Audit
 
 | Event | When |
@@ -112,6 +120,7 @@ occur because execution does not exist.
 | `INTEGRATION_NOT_CONFIGURED` | Policy would permit an intent; provider is not configured |
 | `INTEGRATION_QUEUED` | Reserved; v0.1 does not persist `QUEUED` because providers are not configured |
 | `INTEGRATION_CANCELLED` | Successful cancel |
+| `INTEGRATION_EXPIRED` | Overdue `NOT_CONFIGURED` intent closed without execution |
 | `INTEGRATION_HEALTH_CHECK_SKIPPED` | List or status GET |
 
 Each event includes tenant/org id, actor id, auth mode, correlation id, safe

@@ -139,6 +139,7 @@ export function operationPayload(
     dataClassification?: IntegrationDataClassification;
     idempotencyKey?: string;
     payloadReference?: Record<string, unknown>;
+    timeoutMs?: number;
   } = {},
 ) {
   return {
@@ -148,6 +149,7 @@ export function operationPayload(
     idempotencyKey: overrides.idempotencyKey ?? `idem-${Date.now()}-${Math.random()}`,
     ...(overrides.providerKey ? { providerKey: overrides.providerKey } : {}),
     ...(overrides.payloadReference ? { payloadReference: overrides.payloadReference } : {}),
+    ...(overrides.timeoutMs !== undefined ? { timeoutMs: overrides.timeoutMs } : {}),
   };
 }
 
