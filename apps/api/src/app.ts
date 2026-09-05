@@ -16,6 +16,7 @@ import {
 } from './info.js';
 import { registerPrimeRoutes } from './prime/routes.js';
 import { registerEvidenceRoutes } from './evidence/routes.js';
+import { registerIntegrationRoutes } from './integrations/routes.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -98,6 +99,7 @@ export async function buildApp(pool?: Pool, authConfig?: AuthConfig): Promise<Fa
     registerAuthProvider(app, provider);
     registerPrimeRoutes(app, pool);
     registerEvidenceRoutes(app, pool);
+    registerIntegrationRoutes(app, pool);
   }
 
   app.setNotFoundHandler((request, reply) => {
