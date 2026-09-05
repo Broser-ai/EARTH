@@ -31,33 +31,33 @@ export class IntegrationRegistry {
     if (!INTEGRATION_PROVIDER_KEYS.includes(adapter.providerKey)) {
       throw new IntegrationError(
         'UNKNOWN_PROVIDER',
-        `Adapter ${String(adapter.providerKey)} is not a registered control-plane provider.`,
+        `UNKNOWN_PROVIDER: Adapter ${String(adapter.providerKey)} is not a registered control-plane provider.`,
       );
     }
     const capabilities = adapter.capabilities;
     if (!capabilities) {
       throw new IntegrationError(
         'OPERATION_NOT_SUPPORTED',
-        `Adapter ${adapter.providerKey} must declare explicit capabilities.`,
+        `OPERATION_NOT_SUPPORTED: Adapter ${adapter.providerKey} must declare explicit capabilities.`,
       );
     }
     if (Boolean(capabilities.autonomousActions)) {
       throw new IntegrationError(
         'AUTONOMOUS_ACTION_FORBIDDEN',
-        `Adapter ${adapter.providerKey} must not declare autonomousActions.`,
+        `AUTONOMOUS_ACTION_FORBIDDEN: Adapter ${adapter.providerKey} must not declare autonomousActions.`,
       );
     }
     if (Number(capabilities.maxAttempts) !== 1) {
       throw new IntegrationError(
         'RETRY_NOT_PERMITTED',
-        `Adapter ${adapter.providerKey} must set maxAttempts=1 (no automatic retries).`,
+        `RETRY_NOT_PERMITTED: Adapter ${adapter.providerKey} must set maxAttempts=1 (no automatic retries).`,
       );
     }
     for (const operation of capabilities.allowedOperations) {
       if (isAutonomousOperationType(operation)) {
         throw new IntegrationError(
           'AUTONOMOUS_ACTION_FORBIDDEN',
-          `Adapter ${adapter.providerKey} cannot allow ${operation}.`,
+          `AUTONOMOUS_ACTION_FORBIDDEN: Adapter ${adapter.providerKey} cannot allow ${operation}.`,
         );
       }
     }
