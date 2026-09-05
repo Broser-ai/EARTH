@@ -32,6 +32,7 @@ export interface SessionEnvelope {
 
 export interface RunNextResult extends SessionEnvelope {
   claimedTask: TaskView | null;
+  claimedTasks: TaskView[];
 }
 
 interface SessionRow {
@@ -57,6 +58,7 @@ interface SessionRow {
   max_estimated_gco2e: string;
   used_estimated_gco2e: string;
   created_by: string;
+  expires_at: Date | string | null;
 }
 
 interface TaskRow {
@@ -72,6 +74,8 @@ interface TaskRow {
   error_code: string | null;
   attempt_count: number;
   max_attempts: number;
+  depends_on_task_types: string[] | null;
+  lease_expires_at: Date | string | null;
 }
 
 function num(value: string | number): number {
@@ -144,13 +148,13 @@ export class PrimeService {
           state, idempotency_key, data_classification,
           max_tasks, max_parallel_tasks, max_llm_calls, max_input_tokens,
           max_output_tokens, max_estimated_cost_dkk, max_estimated_gco2e,
-          created_by
+          created_by, expires_at
         ) VALUES (
           $1, $2, $3, $4, $5,
           'QUEUED', $6, $7,
           $8, $9, $10, $11,
           $12, $13, $14,
-          $15
+          $15, now() + interval '24 hours'
         )`,
         [
           sessionId,
@@ -195,8 +199,8 @@ export class PrimeService {
         await client.query(
           `INSERT INTO execution_tasks (
             id, session_id, organization_id, task_type, state, required, priority,
-            input_json, idempotency_key
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)`,
+            input_json, idempotency_key, depends_on_task_types
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10::text[])`,
           [
             taskId,
             sessionId,
@@ -207,6 +211,7 @@ export class PrimeService {
             planned.priority,
             JSON.stringify(planned.input),
             planned.taskType,
+            planned.dependsOnTaskTypes,
           ],
         );
         await insertAuditEvent(client, {
@@ -351,17 +356,16 @@ export class PrimeService {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
-
-      const sessionResult = await client.query<SessionRow>(
-        `SELECT * FROM execution_sessions
-         WHERE id = $1 AND organization_id = $2
-         FOR UPDATE`,
-        [sessionId, tenant.organizationId],
-      );
-      const session = sessionResult.rows[0];
+      const session = await this.lockSession(client, tenant, sessionId);
       if (!session) {
         await client.query('ROLLBACK');
         return null;
+      }
+
+      if (await this.expireIfDue(client, tenant, session)) {
+        const envelope = await this.requireEnvelope(client, tenant, sessionId);
+        await client.query('COMMIT');
+        return { ...envelope, claimedTask: null, claimedTasks: [] };
       }
 
       if (isTerminalSession(session.state)) {
@@ -371,154 +375,99 @@ export class PrimeService {
         );
       }
 
+      await this.reclaimExpiredLeases(client, tenant, session);
+
+      const current = await this.reloadSession(client, tenant, sessionId);
+      if (isTerminalSession(current.state)) {
+        const envelope = await this.requireEnvelope(client, tenant, sessionId);
+        await client.query('COMMIT');
+        return { ...envelope, claimedTask: null, claimedTasks: [] };
+      }
+
       const queued = await client.query<TaskRow>(
         `SELECT * FROM execution_tasks
          WHERE session_id = $1 AND organization_id = $2 AND state = 'QUEUED'
+           AND (
+             cardinality(depends_on_task_types) = 0
+             OR NOT EXISTS (
+               SELECT 1
+               FROM unnest(depends_on_task_types) AS required(task_type)
+               JOIN execution_tasks dep
+                 ON dep.session_id = execution_tasks.session_id
+                AND dep.organization_id = execution_tasks.organization_id
+                AND dep.task_type = required.task_type
+               WHERE dep.state NOT IN ('COMPLETED', 'PARTIAL', 'ABSTAINED', 'NOT_CONFIGURED')
+             )
+           )
          ORDER BY priority ASC, created_at ASC
-         LIMIT 1
+         LIMIT $3
          FOR UPDATE SKIP LOCKED`,
-        [sessionId, tenant.organizationId],
+        [sessionId, tenant.organizationId, Math.max(1, num(current.max_parallel_tasks))],
       );
-      const task = queued.rows[0];
-      if (!task) {
-        await this.recomputeSessionState(client, tenant, session);
-        const envelope = await this.requireEnvelope(client, tenant, sessionId);
-        await client.query('COMMIT');
-        return { ...envelope, claimedTask: null };
+
+      const executedIds: string[] = [];
+      let halted = false;
+      for (const task of queued.rows) {
+        const halt = await this.executeClaimedTask(client, tenant, sessionId, task);
+        executedIds.push(task.id);
+        if (halt) {
+          halted = true;
+          break;
+        }
       }
 
-      assertTaskTransition(task.state, 'RUNNING');
-      const attempts = task.attempt_count + 1;
-      await client.query(
-        `UPDATE execution_tasks
-         SET state = 'RUNNING', started_at = now(), attempt_count = $2
-         WHERE id = $1`,
-        [task.id, attempts],
-      );
-      await insertAuditEvent(client, {
-        organizationId: tenant.organizationId,
-        ...auditContext(tenant),
-        sessionId,
-        taskId: task.id,
-        actorType: 'WORKER',
-        actorId: 'earth-dev-worker',
-        eventType: 'TASK_CLAIMED',
-        previousState: 'QUEUED',
-        nextState: 'RUNNING',
-        input: task.input_json,
-        metadata: { attemptCount: attempts },
-      });
-
-      const result = runDeterministicTask({
-        id: task.id,
-        taskType: task.task_type,
-        state: 'RUNNING',
-        input: asRecord(task.input_json),
-      });
-
-      const budgetError = this.checkBudget(session, result);
-      if (budgetError) {
-        await client.query(
-          `UPDATE execution_tasks
-           SET state = 'BLOCKED', error_code = $2, output_json = $3::jsonb, completed_at = now()
-           WHERE id = $1`,
-          [task.id, 'BUDGET_EXCEEDED', JSON.stringify({ reasonCode: 'BUDGET_EXCEEDED' })],
-        );
-        await insertAuditEvent(client, {
-          organizationId: tenant.organizationId,
-          ...auditContext(tenant),
-          sessionId,
-          taskId: task.id,
-          actorType: 'WORKER',
-          actorId: 'earth-dev-worker',
-          eventType: 'TASK_STATE_CHANGED',
-          previousState: 'RUNNING',
-          nextState: 'BLOCKED',
-          output: { reasonCode: 'BUDGET_EXCEEDED' },
-          metadata: { reasonCode: 'BUDGET_EXCEEDED' },
-        });
-        await this.transitionSession(client, {
-          organizationId: tenant.organizationId,
-          ...auditContext(tenant),
-          sessionId,
-          from: session.state,
-          to: 'BUDGET_STOPPED',
-          actorType: 'SYSTEM',
-          actorId: 'prime-v0.1',
-          metadata: { reasonCode: 'BUDGET_EXCEEDED' },
-        });
-        const envelope = await this.requireEnvelope(client, tenant, sessionId);
-        await client.query('COMMIT');
-        return { ...envelope, claimedTask: envelope.tasks.find((item) => item.id === task.id) ?? null };
+      const refreshed = await this.reloadSession(client, tenant, sessionId);
+      if (!halted) {
+        await this.recomputeSessionState(client, tenant, refreshed);
       }
-
-      let nextState = result.state;
-      if (result.state === 'FAILED' && attempts >= task.max_attempts) {
-        result.errorCode = 'TASK_RETRY_EXHAUSTED';
-        result.reasonCodes = [...result.reasonCodes, 'TASK_RETRY_EXHAUSTED'];
-      } else if (result.state === 'FAILED' && attempts < task.max_attempts) {
-        nextState = 'QUEUED';
-      }
-
-      assertTaskTransition('RUNNING', nextState);
-      await client.query(
-        `UPDATE execution_tasks
-         SET state = $2,
-             output_json = $3::jsonb,
-             error_code = $4,
-             completed_at = CASE WHEN $2 IN ('QUEUED') THEN NULL ELSE now() END
-         WHERE id = $1`,
-        [task.id, nextState, JSON.stringify(result.output), result.errorCode],
-      );
-      await client.query(
-        `UPDATE execution_sessions
-         SET used_estimated_cost_dkk = used_estimated_cost_dkk + $2,
-             used_estimated_gco2e = used_estimated_gco2e + $3,
-             used_llm_calls = used_llm_calls + $4,
-             used_input_tokens = used_input_tokens + $5,
-             used_output_tokens = used_output_tokens + $6,
-             updated_at = now()
-         WHERE id = $1`,
-        [
-          sessionId,
-          result.estimatedCostDkk,
-          result.estimatedGco2e,
-          result.llmCalls,
-          result.inputTokens,
-          result.outputTokens,
-        ],
-      );
-      await insertAuditEvent(client, {
-        organizationId: tenant.organizationId,
-        ...auditContext(tenant),
-        sessionId,
-        taskId: task.id,
-        actorType: 'WORKER',
-        actorId: 'earth-dev-worker',
-        eventType: 'TASK_STATE_CHANGED',
-        previousState: 'RUNNING',
-        nextState,
-        output: result.output,
-        metadata: {
-          taskType: task.task_type,
-          reasonCodes: result.reasonCodes,
-          errorCode: result.errorCode,
-        },
-      });
-
-      const refreshed = await client.query<SessionRow>(
-        `SELECT * FROM execution_sessions WHERE id = $1 AND organization_id = $2 FOR UPDATE`,
-        [sessionId, tenant.organizationId],
-      );
-      const nextSession = refreshed.rows[0];
-      if (!nextSession) {
-        throw new Error('session missing after task update');
-      }
-      await this.recomputeSessionState(client, tenant, nextSession);
-
       const envelope = await this.requireEnvelope(client, tenant, sessionId);
       await client.query('COMMIT');
-      return { ...envelope, claimedTask: envelope.tasks.find((item) => item.id === task.id) ?? null };
+      const claimedTasks = executedIds
+        .map((id) => envelope.tasks.find((item) => item.id === id))
+        .filter((item): item is TaskView => Boolean(item));
+      return { ...envelope, claimedTask: claimedTasks[0] ?? null, claimedTasks };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async cancelSession(tenant: TenantContext, sessionId: string): Promise<SessionEnvelope | null> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const session = await this.lockSession(client, tenant, sessionId);
+      if (!session) {
+        await client.query('ROLLBACK');
+        return null;
+      }
+      if (isTerminalSession(session.state)) {
+        throw new PolicyError(
+          'INVALID_STATE_TRANSITION',
+          `cannot cancel while session is ${session.state}`,
+        );
+      }
+      await client.query(
+        `UPDATE execution_tasks
+         SET state = 'CANCELLED', completed_at = now(), lease_expires_at = NULL
+         WHERE session_id = $1 AND organization_id = $2
+           AND state IN ('QUEUED', 'RUNNING', 'BLOCKED')`,
+        [sessionId, tenant.organizationId],
+      );
+      await this.transitionSession(client, {
+        organizationId: tenant.organizationId,
+        ...auditContext(tenant),
+        sessionId,
+        from: session.state,
+        to: 'CANCELLED',
+        actorType: 'USER',
+        actorId: tenant.actorId,
+      });
+      const envelope = await this.requireEnvelope(client, tenant, sessionId);
+      await client.query('COMMIT');
+      return envelope;
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -569,6 +518,9 @@ export class PrimeService {
       (task) => task.state === 'QUEUED' || task.state === 'RUNNING' || task.state === 'BLOCKED',
     );
     if (pending.length > 0) {
+      if (session.state === 'WAITING_FOR_APPROVAL') {
+        return;
+      }
       if (session.state !== 'RUNNING' && session.state !== 'WAITING_FOR_DEPENDENCY') {
         await this.transitionSession(client, {
           organizationId: tenant.organizationId,
@@ -595,17 +547,303 @@ export class PrimeService {
       return task.error_code === 'EVIDENCE_MISSING' || asRecord(task.output_json).reasonCode === 'EVIDENCE_MISSING';
     });
 
-    const next: SessionState = evidenceMissing ? 'WAITING_FOR_DEPENDENCY' : 'COMPLETED';
+    if (evidenceMissing) {
+      await this.transitionSession(client, {
+        organizationId: tenant.organizationId,
+        ...auditContext(tenant),
+        sessionId: session.id,
+        from: session.state,
+        to: 'WAITING_FOR_DEPENDENCY',
+        actorType: 'SYSTEM',
+        actorId: 'prime-v0.1',
+        metadata: { evidenceMissing: true },
+      });
+      return;
+    }
+
+    const approval = await this.latestHighImpactApproval(client, tenant, session.id);
+    if (approval?.state === 'PENDING') {
+      await this.transitionSession(client, {
+        organizationId: tenant.organizationId,
+        ...auditContext(tenant),
+        sessionId: session.id,
+        from: session.state,
+        to: 'WAITING_FOR_APPROVAL',
+        actorType: 'SYSTEM',
+        actorId: 'prime-v0.1',
+        metadata: { approvalRequestId: approval.id },
+      });
+      return;
+    }
+    if (approval?.state === 'REJECTED') {
+      await this.transitionSession(client, {
+        organizationId: tenant.organizationId,
+        ...auditContext(tenant),
+        sessionId: session.id,
+        from: session.state,
+        to: 'FAILED',
+        actorType: 'SYSTEM',
+        actorId: 'prime-v0.1',
+        metadata: { approvalRequestId: approval.id, reasonCode: 'APPROVAL_REJECTED' },
+      });
+      return;
+    }
+
     await this.transitionSession(client, {
       organizationId: tenant.organizationId,
       ...auditContext(tenant),
       sessionId: session.id,
       from: session.state,
-      to: next,
+      to: 'COMPLETED',
       actorType: 'SYSTEM',
       actorId: 'prime-v0.1',
-      metadata: { evidenceMissing },
+      metadata: { evidenceMissing: false },
     });
+  }
+
+  private async latestHighImpactApproval(
+    client: PoolClient,
+    tenant: TenantContext,
+    sessionId: string,
+  ): Promise<{ id: string; state: string } | null> {
+    const result = await client.query<{ id: string; state: string }>(
+      `SELECT id, state FROM approval_requests
+       WHERE organization_id = $1
+         AND session_id = $2
+         AND request_type = 'HIGH_IMPACT_WORKFLOW'
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [tenant.organizationId, sessionId],
+    );
+    return result.rows[0] ?? null;
+  }
+
+  private async lockSession(
+    client: PoolClient,
+    tenant: TenantContext,
+    sessionId: string,
+  ): Promise<SessionRow | null> {
+    const result = await client.query<SessionRow>(
+      `SELECT * FROM execution_sessions
+       WHERE id = $1 AND organization_id = $2
+       FOR UPDATE`,
+      [sessionId, tenant.organizationId],
+    );
+    return result.rows[0] ?? null;
+  }
+
+  private async reloadSession(
+    client: PoolClient,
+    tenant: TenantContext,
+    sessionId: string,
+  ): Promise<SessionRow> {
+    const session = await this.lockSession(client, tenant, sessionId);
+    if (!session) {
+      throw new Error('session missing after write');
+    }
+    return session;
+  }
+
+  private async expireIfDue(
+    client: PoolClient,
+    tenant: TenantContext,
+    session: SessionRow,
+  ): Promise<boolean> {
+    if (!session.expires_at || isTerminalSession(session.state)) {
+      return false;
+    }
+    if (new Date(session.expires_at).getTime() > Date.now()) {
+      return false;
+    }
+    await this.transitionSession(client, {
+      organizationId: tenant.organizationId,
+      ...auditContext(tenant),
+      sessionId: session.id,
+      from: session.state,
+      to: 'EXPIRED',
+      actorType: 'SYSTEM',
+      actorId: 'prime-v0.1',
+      metadata: { reasonCode: 'SESSION_EXPIRED' },
+    });
+    return true;
+  }
+
+  private async reclaimExpiredLeases(
+    client: PoolClient,
+    tenant: TenantContext,
+    session: SessionRow,
+  ): Promise<void> {
+    const stale = await client.query<TaskRow>(
+      `SELECT * FROM execution_tasks
+       WHERE session_id = $1
+         AND organization_id = $2
+         AND state = 'RUNNING'
+         AND lease_expires_at IS NOT NULL
+         AND lease_expires_at <= now()
+       FOR UPDATE`,
+      [session.id, tenant.organizationId],
+    );
+    for (const task of stale.rows) {
+      const nextState: TaskState = task.attempt_count >= task.max_attempts ? 'FAILED' : 'QUEUED';
+      assertTaskTransition(task.state, nextState);
+      await client.query(
+        `UPDATE execution_tasks
+         SET state = $2,
+             lease_expires_at = NULL,
+             completed_at = CASE WHEN $2 = 'FAILED' THEN now() ELSE NULL END
+         WHERE id = $1`,
+        [task.id, nextState],
+      );
+      await insertAuditEvent(client, {
+        organizationId: tenant.organizationId,
+        ...auditContext(tenant),
+        sessionId: session.id,
+        taskId: task.id,
+        actorType: 'SYSTEM',
+        actorId: 'prime-v0.1',
+        eventType: 'TASK_TIMEOUT',
+        previousState: 'RUNNING',
+        nextState,
+        metadata: {
+          reasonCode: 'TASK_TIMEOUT',
+          attemptCount: task.attempt_count,
+        },
+      });
+    }
+  }
+
+  private async executeClaimedTask(
+    client: PoolClient,
+    tenant: TenantContext,
+    sessionId: string,
+    task: TaskRow,
+  ): Promise<boolean> {
+    assertTaskTransition(task.state, 'RUNNING');
+    const attempts = task.attempt_count + 1;
+    await client.query(
+      `UPDATE execution_tasks
+       SET state = 'RUNNING',
+           started_at = now(),
+           attempt_count = $2,
+           lease_expires_at = now() + interval '15 minutes'
+       WHERE id = $1`,
+      [task.id, attempts],
+    );
+    await insertAuditEvent(client, {
+      organizationId: tenant.organizationId,
+      ...auditContext(tenant),
+      sessionId,
+      taskId: task.id,
+      actorType: 'WORKER',
+      actorId: 'earth-dev-worker',
+      eventType: 'TASK_CLAIMED',
+      previousState: 'QUEUED',
+      nextState: 'RUNNING',
+      input: task.input_json,
+      metadata: { attemptCount: attempts },
+    });
+
+    const result = runDeterministicTask({
+      id: task.id,
+      taskType: task.task_type,
+      state: 'RUNNING',
+      input: asRecord(task.input_json),
+    });
+
+    const live = await this.reloadSession(client, tenant, sessionId);
+    const budgetError = this.checkBudget(live, result);
+    if (budgetError) {
+      await client.query(
+        `UPDATE execution_tasks
+         SET state = 'BLOCKED',
+             error_code = $2,
+             output_json = $3::jsonb,
+             lease_expires_at = NULL,
+             completed_at = now()
+         WHERE id = $1`,
+        [task.id, 'BUDGET_EXCEEDED', JSON.stringify({ reasonCode: 'BUDGET_EXCEEDED' })],
+      );
+      await insertAuditEvent(client, {
+        organizationId: tenant.organizationId,
+        ...auditContext(tenant),
+        sessionId,
+        taskId: task.id,
+        actorType: 'WORKER',
+        actorId: 'earth-dev-worker',
+        eventType: 'TASK_STATE_CHANGED',
+        previousState: 'RUNNING',
+        nextState: 'BLOCKED',
+        output: { reasonCode: 'BUDGET_EXCEEDED' },
+        metadata: { reasonCode: 'BUDGET_EXCEEDED' },
+      });
+      await this.transitionSession(client, {
+        organizationId: tenant.organizationId,
+        ...auditContext(tenant),
+        sessionId,
+        from: live.state,
+        to: 'BUDGET_STOPPED',
+        actorType: 'SYSTEM',
+        actorId: 'prime-v0.1',
+        metadata: { reasonCode: 'BUDGET_EXCEEDED' },
+      });
+      return true;
+    }
+
+    let nextState = result.state;
+    if (result.state === 'FAILED' && attempts >= task.max_attempts) {
+      result.errorCode = 'TASK_RETRY_EXHAUSTED';
+      result.reasonCodes = [...result.reasonCodes, 'TASK_RETRY_EXHAUSTED'];
+    } else if (result.state === 'FAILED' && attempts < task.max_attempts) {
+      nextState = 'QUEUED';
+    }
+
+    assertTaskTransition('RUNNING', nextState);
+    await client.query(
+      `UPDATE execution_tasks
+       SET state = $2,
+           output_json = $3::jsonb,
+           error_code = $4,
+           lease_expires_at = NULL,
+           completed_at = CASE WHEN $2 IN ('QUEUED') THEN NULL ELSE now() END
+       WHERE id = $1`,
+      [task.id, nextState, JSON.stringify(result.output), result.errorCode],
+    );
+    await client.query(
+      `UPDATE execution_sessions
+       SET used_estimated_cost_dkk = used_estimated_cost_dkk + $2,
+           used_estimated_gco2e = used_estimated_gco2e + $3,
+           used_llm_calls = used_llm_calls + $4,
+           used_input_tokens = used_input_tokens + $5,
+           used_output_tokens = used_output_tokens + $6,
+           updated_at = now()
+       WHERE id = $1`,
+      [
+        sessionId,
+        result.estimatedCostDkk,
+        result.estimatedGco2e,
+        result.llmCalls,
+        result.inputTokens,
+        result.outputTokens,
+      ],
+    );
+    await insertAuditEvent(client, {
+      organizationId: tenant.organizationId,
+      ...auditContext(tenant),
+      sessionId,
+      taskId: task.id,
+      actorType: 'WORKER',
+      actorId: 'earth-dev-worker',
+      eventType: 'TASK_STATE_CHANGED',
+      previousState: 'RUNNING',
+      nextState,
+      output: result.output,
+      metadata: {
+        taskType: task.task_type,
+        reasonCodes: result.reasonCodes,
+        errorCode: result.errorCode,
+      },
+    });
+    return false;
   }
 
   private async transitionSession(
@@ -780,6 +1018,9 @@ function nextAction(
   reasonCodes: ReasonCode[],
   tasks: TaskRow[],
 ): NextRecommendedAction {
+  if (state === 'WAITING_FOR_APPROVAL') {
+    return 'NONE';
+  }
   if (reasonCodes.includes('EVIDENCE_MISSING') || state === 'WAITING_FOR_DEPENDENCY') {
     return 'UPLOAD_EVIDENCE';
   }

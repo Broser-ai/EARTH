@@ -48,11 +48,11 @@ export async function insertAuditEvent(client: PoolClient, event: AuditInsert): 
     `INSERT INTO audit_events (
       id, organization_id, session_id, task_id, actor_type, actor_id,
       event_type, previous_state, next_state, policy_version, auth_mode, correlation_id,
-      input_digest, output_digest, metadata_json
+      input_digest, output_digest, metadata_json, created_at
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7, $8, $9, $10, $11, $12,
-      $13, $14, $15::jsonb
+      $13, $14, $15::jsonb, clock_timestamp()
     )`,
     [
       id,

@@ -112,6 +112,27 @@ export function registerPrimeRoutes(app: FastifyInstance, pool: Pool): void {
       return sendPrimeError(request, reply, error);
     }
   });
+
+  app.post('/v1/sessions/:sessionId/cancel', async (request, reply) => {
+    try {
+      canRunDevelopmentTask(request.earthTenant);
+    } catch (error) {
+      return sendAuthError(service, request, reply, error, 'session:cancel');
+    }
+
+    const sessionId = (request.params as { sessionId: string }).sessionId;
+    try {
+      const envelope = await service.cancelSession(request.earthTenant, sessionId);
+      if (!envelope) {
+        return reply
+          .status(404)
+          .send(requestError(request, 'RESOURCE_NOT_FOUND', 'Resource not found.'));
+      }
+      return reply.send(modeEnvelope(request.server.earthAuthMode, envelope));
+    } catch (error) {
+      return sendPrimeError(request, reply, error);
+    }
+  });
 }
 
 function toStartInput(data: z.infer<typeof startBodySchema>): StartOpportunityInput {

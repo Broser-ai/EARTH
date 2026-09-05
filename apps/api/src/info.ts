@@ -39,7 +39,12 @@ export const PRODUCT_ROUTES = [
   {
     method: 'POST',
     path: '/v1/sessions/:sessionId/run-next',
-    purpose: 'claim one QUEUED task and run a deterministic stub',
+    purpose: 'claim unblocked QUEUED tasks and run deterministic stubs (no external I/O)',
+  },
+  {
+    method: 'POST',
+    path: '/v1/sessions/:sessionId/cancel',
+    purpose: 'cancel a non-terminal session in this org',
   },
   {
     method: 'POST',
@@ -75,7 +80,7 @@ export function describeIntegration(name: IntegrationName): string {
     case 'authentication':
       return 'OIDC JWT provider is implemented but not a live IdP. Local default is DEVELOPMENT headers behind TenantContext; roles come from organization_memberships, never from headers or JWT claims';
     case 'primeRuntime':
-      return 'PRIME policy v0.1 for MATERIAL_OPPORTUNITY_INTAKE only; no general agent runtime';
+      return 'PRIME policy v0.1 for MATERIAL_OPPORTUNITY_INTAKE with durable run-next, leases, and cancel; not a general agent runtime';
     case 'nanoChat':
       return 'NOT_CONFIGURED — no local adapter and no LLM call';
     case 'metaHarness':

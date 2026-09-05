@@ -42,7 +42,7 @@ export function registerEvidenceRoutes(app: FastifyInstance, pool: Pool): void {
   app.post('/v1/approval-requests', async (request, reply) => {
     try { canWriteEvidence(request.earthTenant); } catch { return reply.status(403).send(err(request,'FORBIDDEN','You do not have permission to perform this action.')); }
     const input=approvalSchema.safeParse(request.body); if(!input.success)return reply.status(400).send(err(request,'VALIDATION_ERROR','Invalid approval request.'));
-    const value=input.data; const snapshot=await approvalSnapshot(pool,request.earthTenant.organizationId,value.claimId); if(!snapshot)return reply.status(404).send(err(request,'CLAIM_NOT_FOUND','Resource not found.'));
+    const value=input.data; const snapshot=await approvalSnapshot(pool,request.earthTenant.organizationId,value.claimId,value.sessionId); if(!snapshot)return reply.status(404).send(err(request,'CLAIM_NOT_FOUND','Resource not found.'));
     const id=randomUUID(); await pool.query(`INSERT INTO approval_requests (id,organization_id,claim_id,session_id,request_type,state,requested_by,expires_at,required_roles,evidence_snapshot_digest_sha256,claim_snapshot_digest_sha256,reason) VALUES ($1,$2,$3,$4,$5,'PENDING',$6,$7,$8,$9,$10,$11)`,[id,request.earthTenant.organizationId,value.claimId??null,value.sessionId??null,value.requestType,request.earthTenant.actorId,value.expiresAt??null,value.requiredRoles,snapshot.evidence,snapshot.claim,value.reason??null]);
     await audit(pool,request,'APPROVAL_REQUEST_CREATED',id,{...value,snapshot}); return reply.status(201).send(modeEnvelope(request.server.earthAuthMode,{request:{id,state:'PENDING',...value,evidenceSnapshotDigestSha256:snapshot.evidence,claimSnapshotDigestSha256:snapshot.claim},limitation:'Human review request; not automated verification.'}));
   });
@@ -53,7 +53,7 @@ export function registerEvidenceRoutes(app: FastifyInstance, pool: Pool): void {
     if(approval.requested_by===request.earthTenant.actorId)return reply.status(403).send(err(request,'APPROVAL_SELF_REVIEW_FORBIDDEN','Request creators cannot approve their own request.'));
     if(approval.state!=='PENDING')return reply.status(409).send(err(request,'APPROVAL_REQUEST_NOT_PENDING','Approval request is not pending.'));
     if(approval.expires_at&&new Date(approval.expires_at)<new Date())return reply.status(409).send(err(request,'APPROVAL_REQUEST_EXPIRED','Approval request has expired.'));
-    const snapshot=await approvalSnapshot(pool,request.earthTenant.organizationId,approval.claim_id); if(!snapshot||snapshot.evidence!==approval.evidence_snapshot_digest_sha256||snapshot.claim!==approval.claim_snapshot_digest_sha256){await audit(pool,request,'APPROVAL_SNAPSHOT_STALE',approval.id,{});return reply.status(409).send(err(request,'APPROVAL_SNAPSHOT_STALE','Approval snapshot is stale.'));}
+    const snapshot=await approvalSnapshot(pool,request.earthTenant.organizationId,approval.claim_id,approval.session_id); if(!snapshot||snapshot.evidence!==approval.evidence_snapshot_digest_sha256||snapshot.claim!==approval.claim_snapshot_digest_sha256){await audit(pool,request,'APPROVAL_SNAPSHOT_STALE',approval.id,{});return reply.status(409).send(err(request,'APPROVAL_SNAPSHOT_STALE','Approval snapshot is stale.'));}
     const claim=approval.claim_id?(await pool.query(`SELECT created_by FROM claims WHERE id=$1 AND organization_id=$2`,[approval.claim_id,request.earthTenant.organizationId])).rows[0]:null; if(claim?.created_by===request.earthTenant.actorId)return reply.status(403).send(err(request,'APPROVAL_SELF_REVIEW_FORBIDDEN','Claim creators cannot approve their own claim.'));
     if(input.data.decision==='APPROVED'&&approval.request_type==='CLAIM_VERIFICATION'){const required=await pool.query(`SELECT 1 FROM claim_evidence WHERE claim_id=$1 AND organization_id=$2 AND required=true`,[approval.claim_id,request.earthTenant.organizationId]);if(!required.rows[0])return reply.status(409).send(err(request,'REQUIRED_EVIDENCE_MISSING','Required evidence is missing.'));}
     const client=await pool.connect();try{await client.query('BEGIN');await client.query(`INSERT INTO approval_decisions (id,organization_id,approval_request_id,decision,decided_by,comment,evidence_snapshot_digest_sha256,claim_snapshot_digest_sha256,auth_mode,correlation_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,[randomUUID(),request.earthTenant.organizationId,approval.id,input.data.decision,request.earthTenant.actorId,input.data.comment??null,approval.evidence_snapshot_digest_sha256,approval.claim_snapshot_digest_sha256,request.earthTenant.authMode,request.earthTenant.correlationId]);await client.query(`UPDATE approval_requests SET state=$2,updated_at=now() WHERE id=$1`,[approval.id,input.data.decision]);if(approval.claim_id&&approval.request_type==='CLAIM_VERIFICATION')await client.query(`UPDATE claims SET status=$2,updated_at=now() WHERE id=$1 AND organization_id=$3`,[approval.claim_id,input.data.decision==='APPROVED'?'VERIFIED':'REJECTED',request.earthTenant.organizationId]);await client.query('COMMIT');}catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
@@ -62,6 +62,50 @@ export function registerEvidenceRoutes(app: FastifyInstance, pool: Pool): void {
 }
 
 function err(request:any,code:string,message:string){return modeError(request.server.earthAuthMode,code,message,{correlationId:request.id});}
-async function approvalSnapshot(pool:Pool,org:string,claimId?:string){if(!claimId)return {evidence:snapshotDigest({organizationId:org,evidence:[]}),claim:null};const claim=(await pool.query(`SELECT * FROM claims WHERE id=$1 AND organization_id=$2`,[claimId,org])).rows[0];if(!claim)return null;const evidence=(await pool.query(`SELECT ce.relation_type,ce.required,er.id AS record_id,er.value_json,ed.id AS document_id,ed.content_digest_sha256 FROM claim_evidence ce LEFT JOIN evidence_records er ON er.id=ce.evidence_record_id LEFT JOIN evidence_documents ed ON ed.id=ce.evidence_document_id WHERE ce.claim_id=$1 AND ce.organization_id=$2 ORDER BY ce.id`,[claimId,org])).rows;return {evidence:snapshotDigest({organizationId:org,evidence}),claim:snapshotDigest({organizationId:org,claim})};}
+async function approvalSnapshot(pool:Pool,org:string,claimId?:string|null,sessionId?:string|null){
+  if(claimId){
+    const claim=(await pool.query(`SELECT * FROM claims WHERE id=$1 AND organization_id=$2`,[claimId,org])).rows[0];
+    if(!claim)return null;
+    const evidence=(await pool.query(`SELECT ce.relation_type,ce.required,er.id AS record_id,er.value_json,ed.id AS document_id,ed.content_digest_sha256 FROM claim_evidence ce LEFT JOIN evidence_records er ON er.id=ce.evidence_record_id LEFT JOIN evidence_documents ed ON ed.id=ce.evidence_document_id WHERE ce.claim_id=$1 AND ce.organization_id=$2 ORDER BY ce.id`,[claimId,org])).rows;
+    return {evidence:snapshotDigest({organizationId:org,evidence}),claim:snapshotDigest({organizationId:org,claim})};
+  }
+  if(sessionId){
+    const found=await pool.query(
+      `SELECT s.id, s.material_batch_id, s.workflow_type, s.workflow_version,
+              b.id AS batch_id, b.material_class, b.quantity_kg, b.external_reference,
+              b.facility_name, b.available_from, b.status
+         FROM execution_sessions s
+         JOIN material_batches b
+           ON b.id = s.material_batch_id AND b.organization_id = s.organization_id
+        WHERE s.id = $1 AND s.organization_id = $2`,
+      [sessionId, org],
+    );
+    const row=found.rows[0];
+    if(!row)return null;
+    return {
+      evidence: snapshotDigest({
+        organizationId: org,
+        sessionId,
+        batch: {
+          id: row.batch_id,
+          materialClass: row.material_class,
+          quantityKg: String(row.quantity_kg),
+          externalReference: row.external_reference,
+          facilityName: row.facility_name,
+          availableFrom: row.available_from,
+          status: row.status,
+        },
+      }),
+      claim: snapshotDigest({
+        organizationId: org,
+        sessionId,
+        materialBatchId: row.material_batch_id,
+        workflowType: row.workflow_type,
+        workflowVersion: row.workflow_version,
+      }),
+    };
+  }
+  return {evidence:snapshotDigest({organizationId:org,evidence:[]}),claim:null};
+}
 
 async function audit(pool: Pool, request: any, eventType: string, resourceId: string, input: unknown): Promise<void> { const client=await pool.connect(); try { await insertAuditEvent(client,{organizationId:request.earthTenant.organizationId,actorType:'USER',actorId:request.earthTenant.actorId,authMode:request.earthTenant.authMode,correlationId:request.earthTenant.correlationId,eventType,input,metadata:{resourceId}}); } finally { client.release(); } }
