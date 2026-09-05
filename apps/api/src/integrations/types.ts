@@ -84,6 +84,7 @@ export const INTEGRATION_REASON_CODES = [
   'INTEGRATION_REQUEST_QUOTA_EXCEEDED',
   'INTEGRATION_FORBIDDEN_SIDE_EFFECT',
   'INTEGRATION_PROVIDER_MISMATCH',
+  'INTEGRATION_OPERATION_EXPIRED',
 ] as const;
 
 export type IntegrationReasonCode = (typeof INTEGRATION_REASON_CODES)[number];
@@ -94,6 +95,7 @@ export const INTEGRATION_AUDIT_EVENTS = [
   'INTEGRATION_NOT_CONFIGURED',
   'INTEGRATION_QUEUED',
   'INTEGRATION_CANCELLED',
+  'INTEGRATION_EXPIRED',
   'INTEGRATION_HEALTH_CHECK_SKIPPED',
 ] as const;
 
@@ -106,6 +108,7 @@ export type IntegrationRequest = {
   dataClassification: IntegrationDataClassification;
   idempotencyKey: string;
   payloadReference?: Record<string, unknown>;
+  timeoutMs?: number;
 };
 
 export type IntegrationPolicyDecision = {

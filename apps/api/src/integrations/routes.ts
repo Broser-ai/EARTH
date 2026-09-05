@@ -84,6 +84,7 @@ export function registerIntegrationRoutes(app: FastifyInstance, pool: Pool): voi
         dataClassification: parsed.data.dataClassification,
         idempotencyKey: parsed.data.idempotencyKey,
         payloadReference: parsed.data.payloadReference,
+        timeoutMs: parsed.data.timeoutMs,
       });
       const status = operation.state === 'BLOCKED' ? 403 : 201;
       return reply.status(status).send(
