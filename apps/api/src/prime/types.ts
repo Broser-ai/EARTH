@@ -41,6 +41,7 @@ export interface PlannedTask {
   required: boolean;
   priority: number;
   initialState: TaskState;
+  dependsOnTaskTypes: readonly TaskType[];
   input: Record<string, unknown>;
 }
 
