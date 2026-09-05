@@ -63,6 +63,7 @@ export function planMaterialOpportunity(input: StartOpportunityInput): PolicyPla
     required: true,
     priority: 10,
     initialState: 'QUEUED',
+    dependsOnTaskTypes: [],
     input: { materialClass, quantityKg },
   });
   tasks.push({
@@ -70,6 +71,7 @@ export function planMaterialOpportunity(input: StartOpportunityInput): PolicyPla
     required: true,
     priority: 20,
     initialState: 'QUEUED',
+    dependsOnTaskTypes: ['VALIDATE_BATCH'],
     input: { documentIds: input.evidence.documentIds },
   });
   tasks.push({
@@ -77,6 +79,7 @@ export function planMaterialOpportunity(input: StartOpportunityInput): PolicyPla
     required: true,
     priority: 30,
     initialState: 'QUEUED',
+    dependsOnTaskTypes: ['VALIDATE_BATCH'],
     input: {
       disposalCostDkk: input.baseline.disposalCostDkk,
       co2eKg: input.baseline.co2eKg,
@@ -88,6 +91,7 @@ export function planMaterialOpportunity(input: StartOpportunityInput): PolicyPla
     required: true,
     priority: 40,
     initialState: 'QUEUED',
+    dependsOnTaskTypes: ['CHECK_EVIDENCE', 'CALCULATE_BASELINE'],
     input: { materialClass, quantityKg },
   });
 
@@ -106,6 +110,7 @@ export function planMaterialOpportunity(input: StartOpportunityInput): PolicyPla
         required: false,
         priority: 50,
         initialState: 'NOT_CONFIGURED',
+        dependsOnTaskTypes: [],
         input: {
           extractionRequested: true,
           dataClassification: input.dataClassification,
