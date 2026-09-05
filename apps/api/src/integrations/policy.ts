@@ -2,6 +2,10 @@ import type { TenantContext } from '../auth/types.js';
 import { assertNever } from '../contracts.js';
 import { assertAuthenticatedTenant, canRequestIntegrationOperation } from './core/rbac.js';
 import {
+  findAutonomousPayloadField,
+  isAutonomousOperationType,
+} from './core/capabilities.js';
+import {
   isForbiddenSideEffect,
   isIntegrationProviderKey,
   type IntegrationPolicyDecision,
@@ -36,6 +40,23 @@ export function evaluateIntegrationPolicy(
   const requireApproval = input.policy?.requireHumanApproval ?? true;
   const notConfigured = isNotConfiguredStatus(input.providerStatus);
 
+  if (!request.idempotencyKey.trim()) {
+    return blocked('INTEGRATION_IDEMPOTENCY_REQUIRED', requireApproval);
+  }
+
+  if (isForbiddenSideEffect(request.operationType)) {
+    return blocked('INTEGRATION_FORBIDDEN_SIDE_EFFECT', requireApproval);
+  }
+
+  if (isAutonomousOperationType(request.operationType)) {
+    return blocked('INTEGRATION_AUTONOMOUS_ACTION_FORBIDDEN', requireApproval);
+  }
+
+  const autonomousField = findAutonomousPayloadField(request.payloadReference);
+  if (autonomousField) {
+    return blocked('INTEGRATION_AUTONOMOUS_ACTION_FORBIDDEN', requireApproval);
+  }
+
   if (!input.policy) {
     return blocked('INTEGRATION_POLICY_MISSING', requireApproval);
   }
@@ -56,19 +77,11 @@ export function evaluateIntegrationPolicy(
     return blocked('INTEGRATION_PURPOSE_BLOCKED', input.policy.requireHumanApproval);
   }
 
-  if (!request.idempotencyKey.trim()) {
-    return blocked('INTEGRATION_IDEMPOTENCY_REQUIRED', input.policy.requireHumanApproval);
-  }
-
   if (
     input.policy.monthlyRequestLimit !== null &&
     input.monthlyRequestCount >= input.policy.monthlyRequestLimit
   ) {
     return blocked('INTEGRATION_REQUEST_QUOTA_EXCEEDED', input.policy.requireHumanApproval);
-  }
-
-  if (isForbiddenSideEffect(request.operationType)) {
-    return blocked('INTEGRATION_FORBIDDEN_SIDE_EFFECT', input.policy.requireHumanApproval);
   }
 
   if (notConfigured) {

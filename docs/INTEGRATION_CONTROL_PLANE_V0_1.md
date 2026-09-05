@@ -2,7 +2,7 @@
 
 **Status:** local development prototype. Not production. Not a live provider gateway.  
 **Code:** `apps/api/src/integrations/**`  
-**Migration:** `apps/api/migrations/006_integration_control_plane.sql`
+**Migration:** `apps/api/migrations/007_integration_control_plane.sql`
 
 > Integration Control Plane v0.1 manages tenant-scoped, auditable provider
 > operation intents and hard policy checks. It does not perform live provider

@@ -1,5 +1,6 @@
 import type { TenantContext } from '../../auth/types.js';
 import type {
+  AdapterCapabilities,
   IntegrationOperation,
   IntegrationPolicyDecision,
   IntegrationProviderKey,
@@ -7,6 +8,7 @@ import type {
   IntegrationRequest,
   ProviderAdapter,
 } from '../types.js';
+import { defaultAdapterCapabilities } from './capabilities.js';
 import { IntegrationNotImplementedError } from './errors.js';
 
 export type AdapterHost = {
@@ -27,6 +29,10 @@ export class NotConfiguredProviderAdapter implements ProviderAdapter {
     readonly providerKey: IntegrationProviderKey,
     private readonly host: AdapterHost,
   ) {}
+
+  get capabilities(): AdapterCapabilities {
+    return defaultAdapterCapabilities(this.providerKey);
+  }
 
   async getStatus(_context: TenantContext): Promise<IntegrationProviderStatus> {
     void _context;

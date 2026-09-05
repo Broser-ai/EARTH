@@ -85,6 +85,10 @@ export const INTEGRATION_REASON_CODES = [
   'INTEGRATION_FORBIDDEN_SIDE_EFFECT',
   'INTEGRATION_PROVIDER_MISMATCH',
   'INTEGRATION_OPERATION_EXPIRED',
+  'INTEGRATION_AUTONOMOUS_ACTION_FORBIDDEN',
+  'INTEGRATION_RETRY_NOT_PERMITTED',
+  'INTEGRATION_OPERATION_NOT_SUPPORTED',
+  'INTEGRATION_UNSAFE_PAYLOAD_FIELD',
 ] as const;
 
 export type IntegrationReasonCode = (typeof INTEGRATION_REASON_CODES)[number];
@@ -96,6 +100,7 @@ export const INTEGRATION_AUDIT_EVENTS = [
   'INTEGRATION_QUEUED',
   'INTEGRATION_CANCELLED',
   'INTEGRATION_EXPIRED',
+  'INTEGRATION_FAILED',
   'INTEGRATION_HEALTH_CHECK_SKIPPED',
 ] as const;
 
@@ -167,8 +172,17 @@ export type TenantIntegrationPolicy = {
   updatedAt: string;
 };
 
+export type AdapterCapabilities = {
+  readonly allowedOperations: readonly string[];
+  readonly externalDataTransfer: boolean;
+  readonly autonomousActions: false;
+  readonly maxTimeoutMs: number;
+  readonly maxAttempts: 1;
+};
+
 export interface ProviderAdapter {
   providerKey: IntegrationProviderKey;
+  readonly capabilities: AdapterCapabilities;
   getStatus(context: TenantContext): Promise<IntegrationProviderStatus>;
   validateRequest(
     context: TenantContext,

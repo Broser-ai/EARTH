@@ -1,10 +1,12 @@
 import type { Pool, PoolClient } from 'pg';
 import type { TenantContext } from '../../auth/types.js';
+import { assertNever } from '../../contracts.js';
 import { insertIntegrationAuditEvent, requestDigestFor } from '../audit.js';
 import { probeProviderConfig } from '../config.js';
 import { evaluateIntegrationPolicy } from '../policy.js';
 import { IntegrationRegistry } from '../registry.js';
 import type {
+  AdapterCapabilities,
   IntegrationAuditEventType,
   IntegrationOperation,
   IntegrationPolicyDecision,
@@ -31,6 +33,7 @@ export type ProviderStatusView = {
   tenantPolicyEnabled: boolean;
   healthCheck: 'SKIPPED';
   note: string;
+  capabilities: AdapterCapabilities;
 };
 
 export type IntegrationListView = {
@@ -272,8 +275,78 @@ export class IntegrationControlService {
     });
   }
 
-  executeOperation(): Promise<never> {
-    return this.adapter('ROBOFLOW').executeOperation();
+  executeOperation(): Promise<never>;
+  executeOperation(context: TenantContext, operationId: string): Promise<IntegrationOperation>;
+  executeOperation(
+    context?: TenantContext,
+    operationId?: string,
+  ): Promise<IntegrationOperation | never> {
+    if (!context || !operationId) {
+      return this.adapter('ROBOFLOW').executeOperation();
+    }
+    return this.executeRecordedOperation(context, operationId);
+  }
+
+  private async executeRecordedOperation(
+    context: TenantContext,
+    operationId: string,
+  ): Promise<IntegrationOperation> {
+    assertAuthenticatedTenant(context);
+    return this.store.withClient(async (client) => {
+      const existing = await this.store.getOperation(client, context, operationId);
+      if (!existing) {
+        throw new IntegrationError(
+          404,
+          'INTEGRATION_OPERATION_NOT_FOUND',
+          'integration operation not found for this organization',
+        );
+      }
+
+      const operation = await this.hydrateOperation(client, context, existing);
+      switch (operation.state) {
+        case 'EXPIRED':
+        case 'CANCELLED':
+        case 'SUCCEEDED':
+        case 'FAILED':
+          return operation;
+        case 'BLOCKED': {
+          await this.writeAudit(client, context, {
+            eventType: 'INTEGRATION_FAILED',
+            providerKey: operation.providerKey,
+            operationType: operation.operationType,
+            operationId: operation.id,
+            previousState: operation.state,
+            nextState: operation.state,
+            requestDigest: operation.requestDigestSha256,
+            reasonCode: operation.errorCode,
+            metadata: { executeRefused: true, durableFailurePreserved: true },
+          });
+          return operation;
+        }
+        case 'NOT_CONFIGURED': {
+          await this.writeAudit(client, context, {
+            eventType: 'INTEGRATION_NOT_CONFIGURED',
+            providerKey: operation.providerKey,
+            operationType: operation.operationType,
+            operationId: operation.id,
+            previousState: operation.state,
+            nextState: operation.state,
+            requestDigest: operation.requestDigestSha256,
+            reasonCode: 'INTEGRATION_NOT_CONFIGURED',
+            metadata: { executeRefused: true, liveProviderCall: false },
+          });
+          return operation;
+        }
+        case 'REQUESTED':
+        case 'QUEUED':
+        case 'RUNNING':
+          throw new IntegrationNotImplementedError(
+            'executeOperation is not implemented in Integration Control Plane v0.1. Providers are NOT_CONFIGURED. No outbound HTTP is performed.',
+          );
+        default:
+          return assertNever(operation.state);
+      }
+    });
   }
 
   private async hydrateOperation(
@@ -321,6 +394,7 @@ export class IntegrationControlService {
       tenantPolicyEnabled: policy?.enabled === true,
       healthCheck: 'SKIPPED',
       note: STATUS_NOTE,
+      capabilities: this.registry.get(provider.providerKey).capabilities,
     };
   }
 

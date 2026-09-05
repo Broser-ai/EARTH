@@ -69,6 +69,27 @@ export const PRODUCT_ROUTES = [
     path: '/v1/approval-requests/:requestId/decision',
     purpose: 'record a human approval or rejection',
   },
+  { method: 'GET', path: '/v1/integrations', purpose: 'list gated provider catalog (NOT_CONFIGURED)' },
+  {
+    method: 'GET',
+    path: '/v1/integrations/:providerKey/status',
+    purpose: 'read one provider status (never CONNECTED)',
+  },
+  {
+    method: 'POST',
+    path: '/v1/integrations/:providerKey/operations',
+    purpose: 'record a tenant-scoped provider intent (no outbound call)',
+  },
+  {
+    method: 'GET',
+    path: '/v1/integration-operations/:operationId',
+    purpose: 'read a durable integration operation for this org',
+  },
+  {
+    method: 'POST',
+    path: '/v1/integration-operations/:operationId/cancel',
+    purpose: 'cancel a non-terminal integration operation in this org',
+  },
 ] as const;
 
 export function describeIntegration(name: IntegrationName): string {

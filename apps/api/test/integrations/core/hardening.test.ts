@@ -419,6 +419,81 @@ describe('Integration Control Plane hardening', () => {
     expect(running.rows[0].n).toBe('0');
   });
 
+  it('does not overwrite durable BLOCKED failures when execute is attempted', async () => {
+    const blocked = await app.inject({
+      method: 'POST',
+      url: '/v1/integrations/ROBOFLOW/operations',
+      headers: roleHeaders(DEV_USER),
+      payload: operationPayload({ idempotencyKey: 'execute-blocked' }),
+    });
+    expect(blocked.statusCode).toBe(403);
+    expect(blocked.json().operation.state).toBe('BLOCKED');
+    expect(blocked.json().operation.errorCode).toBe('INTEGRATION_POLICY_MISSING');
+    const operationId = blocked.json().operation.id as string;
+
+    const executed = await service.executeOperation(
+      {
+        organizationId: DEV_ORG,
+        actorId: DEV_USER,
+        role: 'OWNER',
+        authMode: AUTH_MODE_DEVELOPMENT,
+        correlationId: 'execute-blocked-test',
+      },
+      operationId,
+    );
+    expect(executed.state).toBe('BLOCKED');
+    expect(executed.errorCode).toBe('INTEGRATION_POLICY_MISSING');
+
+    const stored = await pool.query<{ state: string; error_code: string | null }>(
+      `SELECT state, error_code FROM integration_operations WHERE id = $1`,
+      [operationId],
+    );
+    expect(stored.rows[0]?.state).toBe('BLOCKED');
+    expect(stored.rows[0]?.error_code).toBe('INTEGRATION_POLICY_MISSING');
+
+    const failedAudit = await pool.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM audit_events
+       WHERE organization_id = $1 AND event_type = 'INTEGRATION_FAILED'`,
+      [DEV_ORG],
+    );
+    expect(Number(failedAudit.rows[0].n)).toBeGreaterThan(0);
+  });
+
+  it('blocks autonomous booking payload fields and top-level API keys', async () => {
+    await upsertTenantPolicy(pool, {
+      organizationId: DEV_ORG,
+      providerKey: 'ROBOFLOW',
+      enabled: true,
+    });
+
+    const booking = await app.inject({
+      method: 'POST',
+      url: '/v1/integrations/ROBOFLOW/operations',
+      headers: roleHeaders(DEV_USER),
+      payload: operationPayload({
+        idempotencyKey: 'book-payload',
+        payloadReference: { book: true },
+      }),
+    });
+    expect(booking.statusCode).toBe(403);
+    expect(booking.json().operation.state).toBe('BLOCKED');
+    expect(booking.json().operation.errorCode).toBe('INTEGRATION_AUTONOMOUS_ACTION_FORBIDDEN');
+    expect(booking.json().executed).toBe(false);
+
+    const withKey = await app.inject({
+      method: 'POST',
+      url: '/v1/integrations/ROBOFLOW/operations',
+      headers: roleHeaders(DEV_USER),
+      payload: {
+        ...operationPayload({ idempotencyKey: 'browser-key' }),
+        apiKey: 'rf_from_browser',
+      },
+    });
+    expect(withKey.statusCode).toBe(400);
+    expect(withKey.json().error.code).toBe('INTEGRATION_UNSAFE_PAYLOAD_FIELD');
+    expect(JSON.stringify(withKey.json())).not.toMatch(/rf_from_browser/);
+  });
+
   it('persists intent timeout and expires overdue NOT_CONFIGURED operations without executing', async () => {
     await upsertTenantPolicy(pool, {
       organizationId: DEV_ORG,

@@ -57,7 +57,13 @@ describe('Integration Control Plane v0.1', () => {
     expect(listed.statusCode).toBe(200);
     const body = listed.json() as {
       mode: string;
-      providers: Array<{ providerKey: string; status: string; connected: boolean; live: boolean }>;
+      providers: Array<{
+        providerKey: string;
+        status: string;
+        connected: boolean;
+        live: boolean;
+        capabilities: { autonomousActions: boolean; maxAttempts: number; allowedOperations: string[] };
+      }>;
       healthCheck: string;
     };
     expect(body.mode).toBe(AUTH_MODE_DEVELOPMENT);
@@ -67,6 +73,9 @@ describe('Integration Control Plane v0.1', () => {
       expect(provider.status).toBe('NOT_CONFIGURED');
       expect(provider.connected).toBe(false);
       expect(provider.live).toBe(false);
+      expect(provider.capabilities.autonomousActions).toBe(false);
+      expect(provider.capabilities.maxAttempts).toBe(1);
+      expect(provider.capabilities.allowedOperations.length).toBeGreaterThan(0);
     }
 
     for (const providerKey of PROVIDERS) {

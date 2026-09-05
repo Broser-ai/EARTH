@@ -4,6 +4,7 @@ import { AuthError } from '../auth/errors.js';
 import { modeEnvelope, modeError } from '../http.js';
 import { IntegrationError } from './core/errors.js';
 import { IntegrationControlService } from './core/service.js';
+import { findUnsafePayloadField } from './core/capabilities.js';
 import { isIntegrationProviderKey, type IntegrationProviderKey } from './types.js';
 import { createOperationBodySchema, operationIdParamSchema, providerKeyParamSchema } from './schemas.js';
 
@@ -36,6 +37,21 @@ export function registerIntegrationRoutes(app: FastifyInstance, pool: Pool): voi
     const providerKey = parseProviderKey(request, reply);
     if (!providerKey) {
       return;
+    }
+
+    const unsafeField = findUnsafePayloadField(
+      request.body && typeof request.body === 'object' && !Array.isArray(request.body)
+        ? (request.body as Record<string, unknown>)
+        : undefined,
+    );
+    if (unsafeField) {
+      return reply.status(400).send(
+        modeError(
+          request.server.earthAuthMode,
+          'INTEGRATION_UNSAFE_PAYLOAD_FIELD',
+          `payload must not include ${unsafeField}`,
+        ),
+      );
     }
 
     const parsed = createOperationBodySchema.safeParse(request.body);

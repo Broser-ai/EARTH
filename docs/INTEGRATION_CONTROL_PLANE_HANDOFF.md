@@ -17,7 +17,7 @@ Rebased onto the verified canonical foundation:
 - `origin/integration/earth-canonical-foundation-v1` @ `bfe6feb9e5fc9459bb57479f4f53784310a8e8df`
 - tenant fixture repair `1e00cc3` is in ancestry
 - Evidence/Claims and durable approvals are present (`005_evidence_approvals.sql`)
-- Integration Control Plane migration is **`006_integration_control_plane.sql`** (005 is occupied)
+- Integration Control Plane migration is **`007_integration_control_plane.sql`** (006 is PRIME multi-session)
 
 Do not use `origin/main` as the base.
 
@@ -33,7 +33,7 @@ Do not use `origin/main` as the base.
 | REST | `apps/api/src/integrations/routes.ts` |
 | Service | `apps/api/src/integrations/core/service.ts` |
 | v0.1 adapter | `apps/api/src/integrations/core/adapter.ts` |
-| Schema | `apps/api/migrations/006_integration_control_plane.sql` |
+| Schema | `apps/api/migrations/007_integration_control_plane.sql` |
 
 Do **not** start from `src/sovereign/vision/roboflow/**` or other browser
 kernel stubs. Those are prototype-only.

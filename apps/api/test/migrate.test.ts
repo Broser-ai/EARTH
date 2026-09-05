@@ -9,6 +9,8 @@ const EXPECTED_MIGRATIONS = [
   '003_dev_viewer_seed.sql',
   '004_oidc_memberships.sql',
   '005_evidence_approvals.sql',
+  '006_prime_multi_session.sql',
+  '007_integration_control_plane.sql',
 ];
 
 describe('canonical migrate path', () => {
@@ -41,6 +43,7 @@ describe('canonical migrate path', () => {
           'audit_events',
           'execution_sessions',
           'evidence_records',
+          'integration_operations',
           'organization_memberships',
           'users',
         ],
@@ -50,6 +53,7 @@ describe('canonical migrate path', () => {
       'audit_events',
       'evidence_records',
       'execution_sessions',
+      'integration_operations',
       'organization_memberships',
       'users',
     ]);
