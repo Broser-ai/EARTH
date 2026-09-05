@@ -116,6 +116,7 @@ export async function drainSession(
     'CANCELLED',
     'BUDGET_STOPPED',
     'EXPIRED',
+    'WAITING_FOR_APPROVAL',
   ]);
   let last = await app.inject({
     method: 'POST',

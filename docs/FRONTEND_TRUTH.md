@@ -22,7 +22,7 @@ The EARTH command-grid SPA (`src/`, Vite port 5180) is a **DEVELOPMENT / DEMO** 
 | SBTi validated / 1.5°C aligned | DEMO illustration. No Science Based Targets submission. |
 | ISO 14064-1 certified | DEMO label only. No certificate. |
 | Live carbon accounting / real-time sync | In-memory DEMO data. |
-| Aegis Protocol ZK-STARK / FHE / defense grid | Client-side animation. **Not a proof system.** Hashes are `Math.random()`. |
+| Aegis Protocol ZK-STARK / FHE / defense grid | In-tab SHA-256 hash chain. **Not a proof system.** Not a durable audit log. |
 | Production API keys (`sk_live_…`) | Masked DEMO placeholders. No secrets. |
 | 7-year CSRD Article 19a retention / SHA-256 tamper-proof log | Copy on a mock audit table. No durable audit store in this SPA. |
 
@@ -32,13 +32,15 @@ The **Material intake** page (`src/pages/MaterialOpportunityIntake.tsx`) is the 
 
 ## GHG spine
 
-If a screen shows inventory tCO₂e after this change, it should use `src/demo/canonical.ts`:
+If a screen shows inventory tCO₂e after this change, it should use `src/demo/canonical.ts` (shared `packages/earth-contracts` kernel e-liability line items):
 
-- Scope 1: **2,140** tCO₂e  
-- Scope 2 (location-based): **4,210** tCO₂e  
-- Scope 3: **8,497** tCO₂e  
-- Total: **14,847** tCO₂e  
+- Scope 1: **2,847** tCO₂e
+- Scope 2: **4,123** tCO₂e
+- Scope 3: **7,877** tCO₂e
+- Total: **scope1 + scope2 + scope3** (never an independent 14,847 constant)
 - Honesty: **ESTIMATED** / **INPUT_UNVERIFIED** / **DEMO**
+
+The retired frontend-truth split 2,140 / 4,210 / 8,497 is not used.
 
 These figures are internally consistent with the Scope 1/2/3 breakdown page. They are **not** measured operational data and **must not** be cited as compliance, SBTi progress, or assurance evidence.
 
@@ -49,7 +51,7 @@ Other pages still contain local DEMO tables (pickups, recyclers, auctions). Thos
 This pass is **UI-only labeling plus canonical constants**. There is no test runner in this package (`package.json` has `typecheck` / Vite only). Honesty is enforced by:
 
 1. Visible badges in the command bar and on the screens that previously claimed live status.
-2. Runtime asserts in `src/demo/canonical.ts` (`GHG_TOTAL` and category sum must equal 14,847). `tsc --noEmit` typechecks the module.
+2. Runtime asserts in `src/demo/canonical.ts` (`GHG_TOTAL` equals derived scope1+scope2+scope3). `tsc --noEmit` typechecks the module.
 
 Add Vitest (or equivalent) when behavior beyond labels is introduced. SPA smoke tests now also assert the Material intake nav entry exists.
 

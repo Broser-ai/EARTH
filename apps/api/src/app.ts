@@ -16,6 +16,7 @@ import {
 } from './info.js';
 import { registerPrimeRoutes } from './prime/routes.js';
 import { registerEvidenceRoutes } from './evidence/routes.js';
+import { registerIntegrationRoutes } from './integrations/routes.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -61,7 +62,7 @@ export async function buildApp(pool?: Pool, authConfig?: AuthConfig): Promise<Fa
     }
     reply.header(
       'Access-Control-Allow-Headers',
-      'Content-Type, x-earth-org-id, x-earth-user-id, x-earth-user-role',
+      'Content-Type, Authorization, x-earth-org-id, x-earth-user-id, x-earth-user-role',
     );
     reply.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     reply.header('X-Correlation-Id', request.id);
@@ -98,6 +99,7 @@ export async function buildApp(pool?: Pool, authConfig?: AuthConfig): Promise<Fa
     registerAuthProvider(app, provider);
     registerPrimeRoutes(app, pool);
     registerEvidenceRoutes(app, pool);
+    registerIntegrationRoutes(app, pool);
   }
 
   app.setNotFoundHandler((request, reply) => {

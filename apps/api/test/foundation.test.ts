@@ -62,6 +62,28 @@ describe('API foundation (DEVELOPMENT_ONLY)', () => {
     expect(JSON.stringify(body)).not.toMatch(/api[_-]?key/i);
   });
 
+  it('advertises Authorization on CORS preflight for the SPA origin', async () => {
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/v1/info',
+      headers: { origin: 'http://localhost:5180' },
+    });
+    expect(response.statusCode).toBe(204);
+    const allowed = String(response.headers['access-control-allow-headers'] ?? '');
+    expect(allowed).toMatch(/Authorization/i);
+    expect(allowed).toMatch(/x-earth-user-id/i);
+  });
+
+  it('lists evidence and approval routes on GET /v1/info', async () => {
+    const response = await app.inject({ method: 'GET', url: '/v1/info' });
+    const paths = (response.json().routes as Array<{ method: string; path: string }>).map(
+      (route) => `${route.method} ${route.path}`,
+    );
+    expect(paths).toContain('POST /v1/evidence-records');
+    expect(paths).toContain('POST /v1/approval-requests');
+    expect(response.json().integrationNotes.authentication).toMatch(/organization_memberships/);
+  });
+
   it('labels unknown routes as DEVELOPMENT_ONLY 404', async () => {
     const response = await app.inject({
       method: 'POST',

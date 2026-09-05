@@ -2,7 +2,8 @@
  * Adapter credentials — env interface only.
  *
  * Never log these values. Never commit keys.
- * `VITE_*` copies are bundled into the browser; do not put real secrets there.
+ * Vite inlines `VITE_*` into the browser bundle, so EARTH never reads
+ * `VITE_ROBOFLOW_API_KEY`, `VITE_TINKER_API_KEY`, or `VITE_INKLING_WEIGHTS_URI`.
  * Live Roboflow/Tinker clients attach from a non-browser worker when credentials exist.
  */
 
@@ -22,16 +23,13 @@ function readProcessEnv(name: string): string | undefined {
   const proc = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
   const env = proc?.env;
   if (!env) return undefined;
-  return emptyToUndef(env[name]) ?? emptyToUndef(env[`VITE_${name}`]);
+  return emptyToUndef(env[name]);
 }
 
-function readViteEnv(name: string): string | undefined {
-  const meta = import.meta.env as ImportMetaEnv & Record<string, string | undefined>;
-  return emptyToUndef(meta[name]) ?? emptyToUndef(meta[`VITE_${name}`]);
-}
-
-export function readEarthSecret(name: 'ROBOFLOW_API_KEY' | 'TINKER_API_KEY' | 'INKLING_WEIGHTS_URI'): string | undefined {
-  return readProcessEnv(name) ?? readViteEnv(name) ?? readViteEnv(`VITE_${name}`);
+export function readEarthSecret(
+  name: 'ROBOFLOW_API_KEY' | 'TINKER_API_KEY' | 'INKLING_WEIGHTS_URI',
+): string | undefined {
+  return readProcessEnv(name);
 }
 
 export function readEarthSecretPresence(): EarthSecretPresence {

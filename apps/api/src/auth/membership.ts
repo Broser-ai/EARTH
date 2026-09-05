@@ -18,7 +18,9 @@ export async function findActiveMembershipByUserId(
             u.email, u.oidc_subject AS subject
        FROM users u
        JOIN organization_memberships m ON m.user_id = u.id
-      WHERE u.id = $1 AND m.status = 'ACTIVE'`,
+      WHERE u.id = $1 AND m.status = 'ACTIVE'
+      ORDER BY m.created_at ASC, m.id ASC
+      LIMIT 1`,
         [userId],
     );
     return result.rows[0] ?? null;
@@ -33,7 +35,9 @@ export async function findActiveMembershipBySubject(
             u.email, u.oidc_subject AS subject
        FROM users u
        JOIN organization_memberships m ON m.user_id = u.id
-      WHERE u.oidc_subject = $1 AND m.status = 'ACTIVE'`,
+      WHERE u.oidc_subject = $1 AND m.status = 'ACTIVE'
+      ORDER BY m.created_at ASC, m.id ASC
+      LIMIT 1`,
         [subject],
     );
     return result.rows[0] ?? null;
