@@ -1,17 +1,20 @@
 import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { readEarthSecret, readEarthSecretPresence } from '../src/sovereign/config/env.ts';
 
+const repoRoot = process.cwd();
+
 describe('secret hygiene', () => {
   it('does not type adapter secrets as VITE_* on ImportMetaEnv', async () => {
-    const source = await readFile(new URL('../src/vite-env.d.ts', import.meta.url), 'utf8');
+    const source = await readFile(resolve(repoRoot, 'src/vite-env.d.ts'), 'utf8');
     expect(source).not.toMatch(/VITE_ROBOFLOW_API_KEY/);
     expect(source).not.toMatch(/VITE_TINKER_API_KEY/);
     expect(source).not.toMatch(/VITE_INKLING_WEIGHTS_URI/);
   });
 
   it('does not read VITE_ copies of adapter secrets', async () => {
-    const source = await readFile(new URL('../src/sovereign/config/env.ts', import.meta.url), 'utf8');
+    const source = await readFile(resolve(repoRoot, 'src/sovereign/config/env.ts'), 'utf8');
     expect(source).not.toMatch(/env\[`VITE_\$\{name\}`\]/);
     expect(source).not.toMatch(/readViteEnv\(`VITE_\$\{name\}`\)/);
   });
