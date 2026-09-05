@@ -59,7 +59,17 @@ describe('integration control plane HTTP', () => {
     const body = response.json() as {
       mode: string;
       connected: boolean;
-      providers: Array<{ providerKey: string; status: string; connected: boolean; configured: boolean }>;
+      providers: Array<{
+        providerKey: string;
+        status: string;
+        connected: boolean;
+        configured: boolean;
+        capabilities: {
+          autonomousActions: boolean;
+          maxAttempts: number;
+          allowedOperations: string[];
+        };
+      }>;
     };
     expect(body.mode).toBe(AUTH_MODE_DEVELOPMENT);
     expect(body.connected).toBe(false);
@@ -68,6 +78,9 @@ describe('integration control plane HTTP', () => {
       expect(row.status).toBe('NOT_CONFIGURED');
       expect(row.connected).toBe(false);
       expect(row.configured).toBe(false);
+      expect(row.capabilities.autonomousActions).toBe(false);
+      expect(row.capabilities.maxAttempts).toBe(1);
+      expect(row.capabilities.allowedOperations.length).toBeGreaterThan(0);
     }
     assertNoLeak(body);
   });
@@ -306,6 +319,54 @@ describe('integration control plane HTTP', () => {
     );
     expect(executed.state).toBe('NOT_CONFIGURED');
     expect(providerOutboundProbe.calls).toBe(0);
+    const stored = await pool.query<{ state: string; error_code: string | null }>(
+      `SELECT state, error_code FROM integration_operations WHERE id = $1`,
+      [created.json().operation.id],
+    );
+    expect(stored.rows[0]?.state).toBe('BLOCKED');
+    expect(stored.rows[0]?.error_code).toBe('TENANT_POLICY_MISSING');
+    const failedAudit = await pool.query(
+      `SELECT 1 FROM audit_events WHERE event_type IN ('INTEGRATION_NOT_CONFIGURED', 'INTEGRATION_FAILED')`,
+    );
+    expect(failedAudit.rowCount).toBeGreaterThan(0);
+  });
+
+  it('records an expiry timestamp and expires overdue operations durably', async () => {
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/integrations/ROBOFLOW/operations',
+      headers: devHeaders,
+      payload: {
+        operationType: 'MATERIAL_IMAGE_INFERENCE',
+        purpose: 'MATERIAL_IMAGE_INFERENCE',
+        dataClassification: 'INTERNAL',
+        idempotencyKey: 'expire-1',
+        timeoutMs: 5_000,
+        payload: { objectStorageRef: 'earth://internal/img-1' },
+      },
+    });
+    expect(created.json().operation.expiresAt).toBeTruthy();
+    await pool.query(`UPDATE integration_operations SET expires_at = now() - interval '1 minute' WHERE id = $1`, [
+      created.json().operation.id,
+    ]);
+    const service = new IntegrationService(pool, createIntegrationRegistry(), loadIntegrationConfig());
+    const expired = await service.getOperation(
+      {
+        organizationId: DEV_ORG,
+        actorId: DEV_USER,
+        role: 'OWNER',
+        authMode: AUTH_MODE_DEVELOPMENT,
+        correlationId: 'expire-test',
+      },
+      created.json().operation.id as string,
+    );
+    expect(expired.state).toBe('EXPIRED');
+    expect(expired.errorCode).toBe('OPERATION_EXPIRED');
+    const persisted = await pool.query<{ state: string }>(
+      `SELECT state FROM integration_operations WHERE id = $1`,
+      [created.json().operation.id],
+    );
+    expect(persisted.rows[0]?.state).toBe('EXPIRED');
   });
 
   it('rejects browser-supplied provider keys and unknown providers', async () => {
@@ -332,6 +393,22 @@ describe('integration control plane HTTP', () => {
     });
     expect(unknown.statusCode).toBe(404);
     expect(unknown.json().error.code).toBe('PROVIDER_NOT_ALLOWLISTED');
+
+    const booking = await app.inject({
+      method: 'POST',
+      url: '/v1/integrations/ROBOFLOW/operations',
+      headers: devHeaders,
+      payload: {
+        operationType: 'MATERIAL_IMAGE_INFERENCE',
+        purpose: 'MATERIAL_IMAGE_INFERENCE',
+        dataClassification: 'INTERNAL',
+        idempotencyKey: 'book-1',
+        payload: { book: true },
+      },
+    });
+    expect(booking.statusCode).toBe(201);
+    expect(booking.json().operation.errorCode).toBe('AUTONOMOUS_ACTION_FORBIDDEN');
+    expect(booking.json().operation.state).toBe('BLOCKED');
   });
 
   it('lets VIEWER read the catalog', async () => {

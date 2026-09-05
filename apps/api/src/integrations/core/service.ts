@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { Pool } from 'pg';
 import { requireRole } from '../../auth/roles.js';
 import type { TenantContext } from '../../auth/types.js';
+import { assertNever } from '../../contracts.js';
 import { digestRequest, writeIntegrationAudit } from '../audit.js';
 import type { IntegrationRuntimeConfig } from '../config.js';
 import { evaluateIntegrationPolicy } from '../policy.js';
@@ -14,6 +15,8 @@ import {
   type IntegrationSystemContext,
   type ProviderHealthResult,
 } from '../types.js';
+import type { AdapterCapabilities } from './capabilities.js';
+import { clampIntegrationTimeoutMs } from './capabilities.js';
 import { IntegrationError } from './errors.js';
 import { providerOutboundProbe } from './probe.js';
 import {
@@ -29,6 +32,7 @@ export interface ProviderStatusView extends ProviderHealthResult {
   displayName: string;
   externalDataTransfer: boolean;
   connected: false;
+  capabilities: AdapterCapabilities;
 }
 
 export interface CreateOperationResult {
@@ -116,7 +120,8 @@ export class IntegrationService {
         tenant.organizationId,
         request.providerKey,
       );
-      const decision = evaluateIntegrationPolicy({
+      const adapter = this.registry.get(request.providerKey);
+      let decision = evaluateIntegrationPolicy({
         role: tenant.role,
         request,
         runtime: this.runtime.providers[request.providerKey],
@@ -125,13 +130,20 @@ export class IntegrationService {
         monthlyEstimatedCostDkk: 0,
         approvalVerified: false,
       });
+      if (decision.allowed) {
+        const adapterDecision = await adapter.validateRequest(tenant, request);
+        if (!adapterDecision.allowed) {
+          decision = adapterDecision;
+        }
+      }
 
-      const adapter = this.registry.get(request.providerKey);
       const health = await adapter.getStatus(tenant);
       const state = decision.resultingState;
       const errorCode = decision.allowed && health.status === 'AVAILABLE' ? null : decision.reasonCode;
       const persistedState =
         health.status === 'AVAILABLE' && decision.allowed ? state : decision.resultingState;
+      const timeoutMs = clampIntegrationTimeoutMs(request.timeoutMs);
+      const expiresAt = new Date(Date.now() + timeoutMs).toISOString();
 
       const operation = await this.store.insertOperation(client, {
         id: randomUUID(),
@@ -153,6 +165,7 @@ export class IntegrationService {
         requestedBy: tenant.actorId,
         errorCode,
         correlationId: tenant.correlationId,
+        expiresAt,
       });
 
       await writeIntegrationAudit(client, {
@@ -204,11 +217,26 @@ export class IntegrationService {
   async getOperation(tenant: TenantContext, operationId: string): Promise<IntegrationOperation> {
     assertCanRead(tenant);
     return this.store.withTransaction(async (client) => {
-      const operation = await this.store.getOperation(client, tenant.organizationId, operationId);
-      if (!operation) {
+      const existing = await this.store.getOperation(client, tenant.organizationId, operationId);
+      if (!existing) {
         throw new IntegrationError('OPERATION_NOT_FOUND', 'operation not found for this organization', 404);
       }
-      return operation;
+      const expired = await this.store.expireOverdue(client, tenant.organizationId, operationId);
+      if (expired) {
+        await writeIntegrationAudit(client, {
+          organizationId: tenant.organizationId,
+          actorId: tenant.actorId,
+          authMode: tenant.authMode,
+          eventType: 'INTEGRATION_EXPIRED',
+          providerKey: expired.providerKey,
+          operation: expired,
+          previousState: existing.state,
+          nextState: 'EXPIRED',
+          reasonCode: 'OPERATION_EXPIRED',
+        });
+        return expired;
+      }
+      return existing;
     });
   }
 
@@ -221,6 +249,25 @@ export class IntegrationService {
       const existing = await this.store.getOperation(client, tenant.organizationId, operationId);
       if (!existing) {
         throw new IntegrationError('OPERATION_NOT_FOUND', 'operation not found for this organization', 404);
+      }
+      const expired = await this.store.expireOverdue(client, tenant.organizationId, operationId);
+      if (expired) {
+        await writeIntegrationAudit(client, {
+          organizationId: tenant.organizationId,
+          actorId: tenant.actorId,
+          authMode: tenant.authMode,
+          eventType: 'INTEGRATION_EXPIRED',
+          providerKey: expired.providerKey,
+          operation: expired,
+          previousState: existing.state,
+          nextState: 'EXPIRED',
+          reasonCode: 'OPERATION_EXPIRED',
+        });
+        throw new IntegrationError(
+          'OPERATION_NOT_CANCELLABLE',
+          'operation in state EXPIRED cannot be cancelled',
+          409,
+        );
       }
       if (
         existing.state === 'SUCCEEDED' ||
@@ -272,15 +319,54 @@ export class IntegrationService {
     operationId: string,
   ): Promise<IntegrationOperation> {
     const operation = await this.getOperation(tenant, operationId);
-    if (operation.state === 'NOT_CONFIGURED' || operation.state === 'BLOCKED') {
-      const adapter = this.registry.get(operation.providerKey);
-      return adapter.executeOperation(systemContextFrom(tenant), operation);
+    switch (operation.state) {
+      case 'EXPIRED':
+      case 'CANCELLED':
+      case 'SUCCEEDED':
+      case 'FAILED':
+        return operation;
+      case 'NOT_CONFIGURED':
+      case 'BLOCKED': {
+        const adapter = this.registry.get(operation.providerKey);
+        const result = await adapter.executeOperation(systemContextFrom(tenant), operation);
+        await this.store.withTransaction(async (client) => {
+          if (operation.state === 'NOT_CONFIGURED') {
+            await this.store.updateOperationState(
+              client,
+              tenant.organizationId,
+              operation.id,
+              result.state,
+              result.errorCode,
+              result.safeSummary,
+            );
+          }
+          const eventType =
+            result.state === 'NOT_CONFIGURED' ? 'INTEGRATION_NOT_CONFIGURED' : 'INTEGRATION_FAILED';
+          await writeIntegrationAudit(client, {
+            organizationId: tenant.organizationId,
+            actorId: tenant.actorId,
+            authMode: tenant.authMode,
+            eventType,
+            providerKey: operation.providerKey,
+            operation,
+            previousState: operation.state,
+            nextState: operation.state,
+            reasonCode: result.errorCode ?? operation.errorCode,
+          });
+        });
+        return result;
+      }
+      case 'REQUESTED':
+      case 'QUEUED':
+      case 'RUNNING':
+        throw new IntegrationError(
+          'PROVIDER_NOT_CONFIGURED',
+          'executeOperation is server-side only and refuses unconfigured providers',
+          400,
+        );
+      default:
+        return assertNever(operation.state);
     }
-    throw new IntegrationError(
-      'PROVIDER_NOT_CONFIGURED',
-      'executeOperation is server-side only and refuses unconfigured providers',
-      400,
-    );
   }
 
   private async statusView(
@@ -301,6 +387,7 @@ export class IntegrationService {
       connected: false,
       reasonCode: health.reasonCode,
       checkedAt: health.checkedAt,
+      capabilities: adapter.capabilities,
     };
   }
 }
@@ -323,6 +410,6 @@ function systemContextFrom(tenant: TenantContext): IntegrationSystemContext {
   return {
     correlationId: tenant.correlationId,
     actorId: tenant.actorId,
-    timeoutMs: 10_000,
+    timeoutMs: clampIntegrationTimeoutMs(),
   };
 }

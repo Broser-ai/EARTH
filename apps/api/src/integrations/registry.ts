@@ -1,5 +1,7 @@
 import type { TenantContext } from '../auth/types.js';
 import { DisabledAdapter } from './core/disabled-adapter.js';
+import { IntegrationError } from './core/errors.js';
+import { isAutonomousOperationType } from './core/capabilities.js';
 import {
   INTEGRATION_PROVIDER_KEYS,
   type IntegrationProviderKey,
@@ -21,7 +23,44 @@ export class IntegrationRegistry {
   }
 
   register(adapter: ProviderAdapter): void {
+    this.assertControlledAdapter(adapter);
     this.adapters.set(adapter.providerKey, adapter);
+  }
+
+  private assertControlledAdapter(adapter: ProviderAdapter): void {
+    if (!INTEGRATION_PROVIDER_KEYS.includes(adapter.providerKey)) {
+      throw new IntegrationError(
+        'UNKNOWN_PROVIDER',
+        `Adapter ${String(adapter.providerKey)} is not a registered control-plane provider.`,
+      );
+    }
+    const capabilities = adapter.capabilities;
+    if (!capabilities) {
+      throw new IntegrationError(
+        'OPERATION_NOT_SUPPORTED',
+        `Adapter ${adapter.providerKey} must declare explicit capabilities.`,
+      );
+    }
+    if (Boolean(capabilities.autonomousActions)) {
+      throw new IntegrationError(
+        'AUTONOMOUS_ACTION_FORBIDDEN',
+        `Adapter ${adapter.providerKey} must not declare autonomousActions.`,
+      );
+    }
+    if (Number(capabilities.maxAttempts) !== 1) {
+      throw new IntegrationError(
+        'RETRY_NOT_PERMITTED',
+        `Adapter ${adapter.providerKey} must set maxAttempts=1 (no automatic retries).`,
+      );
+    }
+    for (const operation of capabilities.allowedOperations) {
+      if (isAutonomousOperationType(operation)) {
+        throw new IntegrationError(
+          'AUTONOMOUS_ACTION_FORBIDDEN',
+          `Adapter ${adapter.providerKey} cannot allow ${operation}.`,
+        );
+      }
+    }
   }
 
   get(providerKey: IntegrationProviderKey): ProviderAdapter {
@@ -54,7 +93,7 @@ export class IntegrationRegistry {
           }
         }
       } catch {
-        this.register(new DisabledAdapter(key));
+        this.adapters.set(key, new DisabledAdapter(key));
       }
     }
   }

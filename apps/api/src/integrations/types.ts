@@ -1,5 +1,6 @@
 import type { TenantContext } from '../auth/types.js';
 import { assertNever } from '../contracts.js';
+import type { AdapterCapabilities } from './core/capabilities.js';
 
 export const INTEGRATION_PROVIDER_KEYS = [
   'ROBOFLOW',
@@ -61,6 +62,7 @@ export const INTEGRATION_AUDIT_EVENTS = [
   'INTEGRATION_SUCCEEDED',
   'INTEGRATION_FAILED',
   'INTEGRATION_CANCELLED',
+  'INTEGRATION_EXPIRED',
   'INTEGRATION_HEALTH_CHECKED',
 ] as const;
 export type IntegrationAuditEventType = (typeof INTEGRATION_AUDIT_EVENTS)[number];
@@ -105,6 +107,11 @@ export const INTEGRATION_REASON_CODES = [
   'UNSAFE_PAYLOAD_FIELD',
   'PAYLOAD_TOO_LARGE',
   'CONNECTED_STATUS_FORBIDDEN',
+  'AUTONOMOUS_ACTION_FORBIDDEN',
+  'RETRY_NOT_PERMITTED',
+  'TIMEOUT_EXCEEDED',
+  'OPERATION_EXPIRED',
+  'UNKNOWN_PROVIDER',
 ] as const;
 export type IntegrationReasonCode = (typeof INTEGRATION_REASON_CODES)[number];
 
@@ -188,6 +195,7 @@ export interface ProviderRuntimeConfig {
 
 export interface ProviderAdapter {
   readonly providerKey: IntegrationProviderKey;
+  readonly capabilities: AdapterCapabilities;
   getStatus(context: TenantContext): Promise<ProviderHealthResult>;
   checkHealth(systemContext: IntegrationSystemContext): Promise<ProviderHealthResult>;
   validateRequest(context: TenantContext, request: IntegrationRequest): Promise<IntegrationPolicyDecision>;

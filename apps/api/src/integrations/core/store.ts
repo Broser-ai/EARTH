@@ -168,17 +168,18 @@ export class IntegrationStore {
       requestedBy: string;
       errorCode: string | null;
       correlationId: string;
+      expiresAt: string;
     },
   ): Promise<IntegrationOperation> {
     const result = await client.query<OperationRow>(
       `INSERT INTO integration_operations (
         id, organization_id, provider_key, operation_type, state, idempotency_key,
         purpose, data_classification, request_digest_sha256, safe_summary,
-        requested_by, error_code, correlation_id
+        requested_by, error_code, correlation_id, expires_at
       ) VALUES (
         $1, $2, $3, $4, $5, $6,
         $7, $8, $9, $10,
-        $11, $12, $13
+        $11, $12, $13, $14
       ) RETURNING *`,
       [
         operation.id,
@@ -194,9 +195,33 @@ export class IntegrationStore {
         operation.requestedBy,
         operation.errorCode,
         operation.correlationId,
+        operation.expiresAt,
       ],
     );
     return toOperation(result.rows[0]);
+  }
+
+  async expireOverdue(
+    client: PoolClient,
+    organizationId: string,
+    operationId: string,
+  ): Promise<IntegrationOperation | null> {
+    const result = await client.query<OperationRow>(
+      `UPDATE integration_operations
+       SET state = 'EXPIRED',
+           error_code = 'OPERATION_EXPIRED',
+           safe_summary = 'Operation exceeded its timeout boundary. No provider execution occurred.',
+           completed_at = now(),
+           updated_at = now()
+       WHERE id = $1
+         AND organization_id = $2
+         AND expires_at IS NOT NULL
+         AND expires_at < now()
+         AND state NOT IN ('SUCCEEDED', 'FAILED', 'CANCELLED', 'EXPIRED')
+       RETURNING *`,
+      [operationId, organizationId],
+    );
+    return result.rows[0] ? toOperation(result.rows[0]) : null;
   }
 
   async getOperation(

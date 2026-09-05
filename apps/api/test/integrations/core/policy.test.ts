@@ -202,4 +202,29 @@ describe('evaluateIntegrationPolicy', () => {
     expect(decision.resultingState).toBe('REQUESTED');
     expect(decision.providerStatus).not.toBe('AVAILABLE');
   });
+
+  it('blocks autonomous booking, payment, submission, and approval intents', () => {
+    const booking = evaluateIntegrationPolicy({
+      role: 'OWNER',
+      request: request({ operationType: 'BOOKING_SLOT' }),
+      runtime: runtimeOff,
+      tenantPolicy: policy(),
+      monthlyRequestCount: 0,
+      monthlyEstimatedCostDkk: 0,
+      approvalVerified: false,
+    });
+    expect(booking.allowed).toBe(false);
+    expect(['OPERATION_NOT_SUPPORTED', 'AUTONOMOUS_ACTION_FORBIDDEN']).toContain(booking.reasonCode);
+
+    const pay = evaluateIntegrationPolicy({
+      role: 'OWNER',
+      request: request({ payload: { pay: true, objectStorageRef: 'earth://internal/x' } }),
+      runtime: runtimeOff,
+      tenantPolicy: policy(),
+      monthlyRequestCount: 0,
+      monthlyEstimatedCostDkk: 0,
+      approvalVerified: false,
+    });
+    expect(pay.reasonCode).toBe('AUTONOMOUS_ACTION_FORBIDDEN');
+  });
 });

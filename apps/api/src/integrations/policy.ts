@@ -1,5 +1,6 @@
 import { assertNever, type UserRole } from '../contracts.js';
 import { canCreateIntegrationOperation } from './core/rbac.js';
+import { findAutonomousPayloadField, isAutonomousOperationType } from './core/capabilities.js';
 import {
   providerSupportsOperation,
   type IntegrationDataClassification,
@@ -143,6 +144,23 @@ function evaluateSchema(request: IntegrationRequest): IntegrationPolicyDecision 
       'operationType is required',
       'BLOCKED',
       'NOT_CONFIGURED',
+    );
+  }
+  if (isAutonomousOperationType(request.operationType)) {
+    return deny(
+      'AUTONOMOUS_ACTION_FORBIDDEN',
+      'booking, payment, submission, and approval operations are forbidden',
+      'BLOCKED',
+      'DISABLED',
+    );
+  }
+  const autonomousField = findAutonomousPayloadField(request.payload);
+  if (autonomousField) {
+    return deny(
+      'AUTONOMOUS_ACTION_FORBIDDEN',
+      `payload must not include autonomous intent field ${autonomousField}`,
+      'BLOCKED',
+      'DISABLED',
     );
   }
   const unsafe = findUnsafePayloadField(request.payload);

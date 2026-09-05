@@ -8,10 +8,16 @@ import {
   type ProviderAdapter,
   type ProviderHealthResult,
 } from '../types.js';
+import type { AdapterCapabilities } from './capabilities.js';
+import { defaultAdapterCapabilities } from './capabilities.js';
 import { IntegrationError } from './errors.js';
 
 export class DisabledAdapter implements ProviderAdapter {
   constructor(readonly providerKey: IntegrationProviderKey) {}
+
+  get capabilities(): AdapterCapabilities {
+    return defaultAdapterCapabilities(this.providerKey);
+  }
 
   async getStatus(_context: TenantContext): Promise<ProviderHealthResult> {
     return notConfigured(this.providerKey);
